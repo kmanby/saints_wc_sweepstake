@@ -1,0 +1,27 @@
+name: Daily sweepstake sims
+
+on:
+  schedule:
+    - cron: "35 5 * * *"   # 05:35 UTC = 06:35 UK summer time; upstream data refreshes ~04:00 UK
+  workflow_dispatch:        # allows manual runs from the Actions tab
+
+permissions:
+  contents: write
+
+jobs:
+  simulate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run tournament simulations
+        run: node sim/simulate.mjs --sims 10000
+      - name: Commit updated odds
+        run: |
+          git config user.name "saints-sim-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add site/data/daily-sim.json
+          git diff --staged --quiet || git commit -m "Daily sim $(date -u +%F)"
+          git push
