@@ -1,8 +1,14 @@
 # Saints CC — FIFA World Cup 2026 Sweepstake Tracker
 
 Club sweepstake site for Saints CC (amateur cricket club). 48 tickets, 48 teams,
-£180 pot, winner = holder of the World Cup-winning team. The draw happened
-2026-06-11; the tournament is now running.
+£180 pot. The draw happened 2026-06-11; the tournament is now running.
+
+Prizes: £100 holder of the team that wins the final · £50 loses the final ·
+£25 wins the third-place playoff · £5 wooden spoon (tournament's bottom team
+by points → GD → GF → GA → fair play → FIFA ranking). The sim CANNOT compute
+the spoon (it produces finishing orders, not scorelines/cards) — decision
+agreed 2026-06-12: hard-code the spoon holder from real results once the
+group stage finishes; do not simulate it.
 
 ## Repo layout
 - `site/` — static pages (Netlify publish dir)
@@ -15,6 +21,17 @@ Club sweepstake site for Saints CC (amateur cricket club). 48 tickets, 48 teams,
   - `data/sweepstake.json` — **source of truth for the draw result**: tickets,
     people (grouped), team names + flag codes. Build new features from this,
     not by scraping the HTML.
+  - `data/facts.json` — single copy of the 48 fun facts, keyed by SIM team
+    name ("Turkey", "Curacao"), each entry `{code, name, fact}` carrying the
+    flagcdn code + display name ("Türkiye", "Curaçao"). Both pages fetch it;
+    don't reintroduce inline copies.
+  - `wallchart.html` — interactive groups + bracket. People-first labels:
+    owner names label group rows, bracket cards and the champion box; the
+    country lives in a hover/tap "team card" (flag, country, holder, champion
+    % from daily-sim.json with the in-page Elo model as fallback, fun fact).
+    Tapping a FLAG pins the card; tapping the rest of a bracket row still
+    advances the team — keep that split, it's what preserves tap-to-advance
+    on touch.
 - `netlify/functions/sports4cast.mjs` — API proxy (see Security)
 - `netlify.toml` — publish dir + functions dir
 
@@ -58,8 +75,11 @@ Club sweepstake site for Saints CC (amateur cricket club). 48 tickets, 48 teams,
 - Emoji flags render as letter codes on Windows — that's why all 48 flags are
   embedded base64 PNGs in the pages. Keep it that way (works offline too).
 - `draw.html` uses localStorage (key `saints-wc-draw-v1`) to survive refreshes.
-- Both pages are fully self-contained single files (embedded logo + flags);
-  only Google Fonts load externally, with graceful fallback.
+- Pages embed logo + flags (self-contained rendering) but index.html and
+  wallchart.html now FETCH same-origin data: `data/facts.json`,
+  `data/daily-sim.json` (+ the GCS wc2026.json). All fetches degrade
+  gracefully — facts modal shows a fallback line, champion % falls back to
+  the in-page model, chart falls back to the snapshot. Keep it that way.
 
 ## Branding (use these, don't invent)
 - Maroon primary `#5C1224` / deep `#43091A`; green secondary `#0E2A1F` /
@@ -73,18 +93,20 @@ Club sweepstake site for Saints CC (amateur cricket club). 48 tickets, 48 teams,
 ## Roadmap (in order)
 1. **[BLOCKED on new API key]** Capture real `/wc2026/chances` response;
    build team-name normaliser + unmatched-team warning.
-2. [LARGELY DONE — now driven by daily-sim.json] **Cumulative win-odds chart** on index.html: one bar per PERSON (33 people,
-   teams summed — data in `site/data/sweepstake.json` → `people`), sorted
-   descending by summed outright-win probability. Gold World Cup trophy icon
-   above 1st, silver medal 2nd, bronze 3rd. Refresh from `/api/chances` on
-   load. Also hydrate the existing fun-fact win-probability badges from live
-   data, falling back to the static `WINPROB` values (snapshot ~11 Jun 2026)
-   if the fetch fails. Possible later toggle: "chance of holding a finalist"
-   using stage probabilities, if the API provides them.
-3. **Wall chart** (groups + bracket, fills in as tournament progresses).
-   Kit will supply example HTML to build from — DO NOT design speculatively.
-   May auto-populate from `/api/fixtures` if it carries results; confirm first.
+2. [DONE 12 Jun] **"Who's winning" chart**, two bars per person: Bar A (gold)
+   = summed champion %; Bar B (cream) = payout if the tournament follows the
+   sim's modal playthrough (🏆 £100 / 🥈 £50 / 🥉 £25 on the podium holders
+   only, sorted modal position then Bar A). Fun-fact badges hydrate from
+   daily-sim.json, falling back to static `WINPROB`. Possible later toggle:
+   "chance of holding a finalist" from stage probabilities.
+3. [DONE — built from Kit's supplied HTML] **Wall chart** with people-first
+   labels + team cards. Next phase: real results lock in as the tournament
+   progresses (`.tr.locked` CSS hooks exist); may auto-populate from
+   `/api/fixtures` if it carries results — confirm first.
 4. Retire countdown remnants on index.html as tracker features land.
+5. **[WAITS for group stage end ~27 Jun]** Wooden spoon: hard-code bottom
+   team + holder from real results (see prize note at top), add 🥄 + £5 row
+   styling to the chart.
 
 ## Daily sim subsystem
 - `sim/simulate.mjs` runs a deterministic Monte Carlo of the whole tournament
@@ -96,14 +118,32 @@ Club sweepstake site for Saints CC (amateur cricket club). 48 tickets, 48 teams,
   One source of truth: never duplicate those tables into the sim.
 - Group orders are sampled from Sports4cast's daily p1–p4 marginals (live GCS
   JSON, embedded snapshot as fallback); qualifying thirds are Elo-weighted;
-  knockout advancement uses winProb directly (no draws). Documented
-  approximations — refine, don't silently change.
+  knockout advancement uses winProb directly (no draws). The two losing
+  semifinalists meet in a third-place playoff. Documented approximations —
+  refine, don't silently change.
+- daily-sim.json records per team: `champion`, `runnerUp`, `third` (each map
+  sums to 100 — never renormalise) plus `stages` (incl. runnerUp/third) and
+  `modal` = {champion, runnerUp, third} of the single most-likely playthrough.
+- `modalScenario()` in the sim deliberately REPLICATES the wall chart's
+  autosim (groups by p1, best-8 thirds by p3, favourite wins every KO match)
+  so the pre-filled wall chart and the index chart's "simulated draw" bar
+  always tell the same story. If the autosim logic in wallchart.html changes,
+  change modalScenario to match.
 - index.html odds-chart source priority: daily-sim.json → wall-chart
-  postMessage champion dist → hard-coded snapshot. Champion %s in the JSON
-  already sum to 100; never renormalise them.
+  postMessage champion dist → hard-coded snapshot. Bar B / medals render only
+  when `modal` is present (fallback sources draw Bar A alone).
 
 ## Dev workflow
-- Local: `netlify dev` (needs `.env` with `SPORTS4CAST_KEY=...`).
+- Local: `npm install`, then `npx netlify dev --offline` (add `.env` with
+  `SPORTS4CAST_KEY=...` for a working proxy; without it `/api/*` returns the
+  deliberate "Server not configured" 500).
+- netlify-cli insists on a Deno binary for its edge-functions proxy (we have
+  none) — the npm `deno` devDependency satisfies it in sandboxes where
+  dl.deno.land is blocked.
+- Render check: `node tools/render-check.mjs` against the running dev server —
+  executes each page's JS in jsdom and asserts chart rows, group cards,
+  bracket cards, champion box, and zero page errors. Run it after touching
+  any page; it caught nothing less than everything string-patching broke.
 - Test proxy: `curl http://localhost:8888/api/chances` (or the deployed
   `https://<site>.netlify.app/api/chances`).
 - Deploy: push to `main` → Netlify auto-deploys (site imported from this repo).

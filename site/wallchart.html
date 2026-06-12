@@ -382,7 +382,7 @@ footer{
   /* Group card fonts — match knockout 0.65rem scale */
   .tn  { font-size: 0.65rem; display: flex; flex-direction: column; align-items: flex-start; white-space: normal; overflow: visible; text-overflow: clip; line-height: 1; }
   .tn-flag { line-height: 1.1; }
-  .tn-lc   { font-size: 0.42rem; line-height: 1; color: var(--dim); margin: 0; padding: 0; }
+  .tn-own  { font-size: 0.5rem; line-height: 1.1; color: var(--white); margin: 0; padding: 0; max-width: 100%; }
   .pts { font-size: 0.65rem; }
   .pts-empty { font-size: 0.62rem; }
   .pc  { font-size: 0.62rem; padding: 2px 3px; }
@@ -539,8 +539,39 @@ footer{
 
 /* ─── Saints CC additions ─── */
 .wflag{height:.95em;width:auto;vertical-align:-.12em;border-radius:1px;margin-right:.3em;box-shadow:0 1px 2px rgba(0,0,0,.4)}
-.tl-own{display:block;font-family:'Saira Condensed',sans-serif;font-size:.68em;color:var(--lime);letter-spacing:.05em;line-height:1.05;opacity:.9}
 .champ-own{font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;color:var(--lime);margin-top:.25rem}
+.champ-box .champ-own{display:block;font-size:.58rem;margin-top:1px}
+
+/* people-first labels: owner is the primary name, country lives in the card */
+.tn-own{font-family:'Saira Condensed',sans-serif;font-size:.64rem;letter-spacing:.04em;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.mt-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.info-tap{cursor:help;display:inline-block;padding:2px;margin:-2px}
+.t3btn .t3-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* rich team card — hover shows it, tap/click pins it */
+.team-card{
+  position:absolute;z-index:300;width:250px;
+  background:var(--surface);border:1px solid var(--border-hi);border-radius:10px;
+  box-shadow:0 14px 40px rgba(0,0,0,.55);
+  padding:12px 14px 11px;display:none;pointer-events:none;
+}
+.team-card.on{display:block}
+.team-card.pinned{pointer-events:auto}
+.tc-head{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.tc-head img{width:38px;height:auto;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.5);flex-shrink:0}
+.tc-country{font-weight:800;font-size:.92rem;color:var(--white);line-height:1.15}
+.tc-owner{font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.14em;font-size:.6rem;color:var(--lime);margin-top:2px}
+.tc-prob{
+  display:inline-block;font-family:'Saira Condensed',sans-serif;text-transform:uppercase;
+  letter-spacing:.12em;font-size:.6rem;color:var(--lime);
+  border:1px solid rgba(217,169,60,.5);border-radius:999px;padding:2px 9px;margin-bottom:7px;
+}
+.tc-fact{font-size:.73rem;line-height:1.5;color:var(--muted);font-style:italic}
+.tc-close{
+  position:absolute;top:2px;right:8px;background:none;border:none;color:var(--lime);
+  font-size:1.05rem;cursor:pointer;line-height:1;display:none;font-family:inherit;
+}
+.team-card.pinned .tc-close{display:block}
 .saints-head{text-align:center;padding:1.1rem .8rem .4rem}
 .st-title{font-family:'Tangerine',cursive;font-weight:700;font-size:2.6rem;color:var(--lime);line-height:.95;text-shadow:0 2px 10px rgba(0,0,0,.5)}
 .st-title span{color:var(--white)}
@@ -558,7 +589,7 @@ footer{
 <div class="saints-head">
   <div class="st-title">Saints CC <span>World Cup Wall Chart</span></div>
   <div class="st-powered">Powered by <a href="https://sports4cast.com/4casts/football4cast/world-cup-football-predictions/" target="_blank" rel="noopener">Sports4cast</a></div>
-  <div class="st-legend">Everything below is the model&rsquo;s daily prediction until real results lock in &mdash; click any probability to play out your own scenario.</div>
+  <div class="st-legend">Every name below is a Saints ticket-holder &mdash; hover or tap a flag for the country, its champion odds and the fun fact. Everything is the model&rsquo;s daily prediction until real results lock in; click any probability to play out your own scenario.</div>
 </div>
 
 <div class="groups-section">
@@ -746,7 +777,115 @@ Object.keys(FLAGS).forEach(t => {
 
 function flag(team){ return FLAGS[team] ? FLAGS[team]+" " : ""; }
 function code(team){ return CODES[team] || team; }
-function teamLabel(team){ return team ? flag(team)+team+(OWNER[team]?`<span class="tl-own">${ownerShort(team)}</span>`:"") : "TBD"; }
+// owner is the primary label everywhere; country lives in the team card
+function ownLabel(team){ return ownerShort(team) || team; }
+function infoFlag(team){ return `<span class="info-tap" role="button" aria-label="About ${team}">${flag(team)}</span>`; }
+
+// ─── SHARED DATA: fun facts + daily-sim champion odds ────────────────
+// facts.json is the single copy shared with index.html (keyed by sim team name).
+let FACTS = {};            // team -> {code, name, fact}
+let CHAMP_PCT = null;      // team -> champion % from data/daily-sim.json
+let CHAMP_FALLBACK = null; // team -> champion % from the in-page model (set at init)
+fetch("data/facts.json")
+  .then(r => r.ok ? r.json() : null)
+  .then(d => { if(d) FACTS = d; })
+  .catch(()=>{});
+fetch("data/daily-sim.json")
+  .then(r => r.ok ? r.json() : null)
+  .then(d => { if(d && d.champion) CHAMP_PCT = d.champion; })
+  .catch(()=>{});
+
+function champPctFor(team){
+  if(CHAMP_PCT && CHAMP_PCT[team] !== undefined) return CHAMP_PCT[team];
+  if(CHAMP_FALLBACK && CHAMP_FALLBACK[team] !== undefined) return CHAMP_FALLBACK[team];
+  return null;
+}
+function fmtChampPct(v){
+  return v < 0.1 ? "&lt;0.1%" : (v < 10 ? v.toFixed(1) : v.toFixed(0)) + "%";
+}
+
+// ─── TEAM CARD (hover shows, tap/click pins) ─────────────────────────
+const teamCard = document.createElement("div");
+teamCard.className = "team-card";
+document.body.appendChild(teamCard);
+let cardPinnedTeam = null;
+
+function buildTeamCardHtml(team){
+  const f = FACTS[team] || {};
+  const country = f.name || team;
+  const owner = OWNER[team] || "";
+  const cp = champPctFor(team);
+  const flagImg = WFLAG64[team] ? `<img src="data:image/png;base64,${WFLAG64[team]}" alt="">` : "";
+  return `<button class="tc-close" aria-label="Close">&times;</button>
+    <div class="tc-head">${flagImg}<div>
+      <div class="tc-country">${country}</div>
+      ${owner ? `<div class="tc-owner">Held by ${owner}</div>` : ""}
+    </div></div>
+    ${cp !== null ? `<span class="tc-prob">Champion chance: ${fmtChampPct(cp)}</span>` : ""}
+    ${f.fact ? `<div class="tc-fact">${f.fact}</div>` : ""}`;
+}
+
+function placeTeamCard(anchor){
+  const r = anchor.getBoundingClientRect();
+  const sx = window.scrollX, sy = window.scrollY;
+  const docW = document.documentElement.clientWidth;
+  teamCard.style.visibility = "hidden";
+  teamCard.classList.add("on");
+  const cw = teamCard.offsetWidth, ch = teamCard.offsetHeight;
+  let left = r.right + sx + 8;
+  if(left + cw > sx + docW - 4) left = r.left + sx - cw - 8;
+  if(left < 4) left = Math.max(4, Math.min(sx + docW - cw - 4, r.left + sx));
+  let top = r.top + sy - ch - 8;
+  if(top < sy + 4) top = r.bottom + sy + 8;
+  teamCard.style.left = left + "px";
+  teamCard.style.top = top + "px";
+  teamCard.style.visibility = "";
+}
+
+function showTeamCard(team, anchor, pin = false){
+  if(!team || !anchor) return;
+  if(cardPinnedTeam && !pin) return;   // a pinned card outranks hover
+  teamCard.innerHTML = buildTeamCardHtml(team);
+  teamCard.classList.toggle("pinned", pin);
+  cardPinnedTeam = pin ? team : null;
+  placeTeamCard(anchor);
+  if(pin){
+    const x = teamCard.querySelector(".tc-close");
+    if(x) x.addEventListener("click", e => { e.stopPropagation(); hideTeamCard(true); });
+  }
+}
+
+function hideTeamCard(force = false){
+  if(cardPinnedTeam && !force) return;
+  cardPinnedTeam = null;
+  teamCard.classList.remove("on", "pinned");
+}
+
+// tap entry point: toggles a pinned card (used on touch, harmless with a mouse)
+function toggleTeamCard(team, anchor){
+  if(cardPinnedTeam === team){ hideTeamCard(true); return; }
+  hideTeamCard(true);
+  showTeamCard(team, anchor, true);
+}
+
+// attach the standard hover + flag-tap wiring to a rendered element
+function wireTeamCard(el, team, { tapWholeEl = false } = {}){
+  if(!el || !team) return;
+  el.addEventListener("mouseenter", () => showTeamCard(team, el));
+  el.addEventListener("mouseleave", () => hideTeamCard());
+  if(tapWholeEl){
+    el.addEventListener("click", e => { e.stopPropagation(); toggleTeamCard(team, el); });
+  } else {
+    const tap = el.querySelector(".info-tap");
+    if(tap) tap.addEventListener("click", e => { e.stopPropagation(); toggleTeamCard(team, el); });
+  }
+}
+
+document.addEventListener("click", e => {
+  if(!cardPinnedTeam) return;
+  if(teamCard.contains(e.target)) return;
+  hideTeamCard(true);
+});
 // ─── DATA ──────────────────────────────────────────────────────
 
 const TEAM_DATA_FALLBACK = {"Mexico":{"group":"A","p1":55.3,"p2":23.4,"p3":13.9,"p4":7.4},"South Korea":{"group":"A","p1":18.5,"p2":31.4,"p3":28.1,"p4":21.9},"Czechia":{"group":"A","p1":15.4,"p2":25.7,"p3":31.3,"p4":27.6},"South Africa":{"group":"A","p1":10.8,"p2":19.5,"p3":26.7,"p4":43.0},"Canada":{"group":"B","p1":35.5,"p2":28.6,"p3":21.3,"p4":14.6},"Switzerland":{"group":"B","p1":30.2,"p2":27.4,"p3":24.7,"p4":17.7},"Qatar":{"group":"B","p1":18.1,"p2":24.3,"p3":27.4,"p4":30.2},"Bosnia-Herzegovina":{"group":"B","p1":16.2,"p2":19.7,"p3":26.6,"p4":37.5},"Brazil":{"group":"C","p1":68.4,"p2":19.3,"p3":8.5,"p4":3.8},"Morocco":{"group":"C","p1":15.1,"p2":37.6,"p3":29.2,"p4":18.1},"Haiti":{"group":"C","p1":4.7,"p2":13.7,"p3":26.1,"p4":55.5},"Scotland":{"group":"C","p1":11.8,"p2":29.4,"p3":36.2,"p4":22.6},"USA":{"group":"D","p1":52.0,"p2":24.5,"p3":14.4,"p4":9.1},"Paraguay":{"group":"D","p1":18.2,"p2":25.3,"p3":28.5,"p4":28.0},"Australia":{"group":"D","p1":16.0,"p2":24.8,"p3":28.8,"p4":30.4},"Turkey":{"group":"D","p1":13.8,"p2":25.4,"p3":28.3,"p4":32.5},"Germany":{"group":"E","p1":50.8,"p2":24.5,"p3":14.7,"p4":10.0},"Ivory Coast":{"group":"E","p1":19.5,"p2":25.7,"p3":27.4,"p4":27.4},"Ecuador":{"group":"E","p1":17.3,"p2":26.1,"p3":28.6,"p4":28.0},"Curacao":{"group":"E","p1":12.4,"p2":23.7,"p3":29.3,"p4":34.6},"Netherlands":{"group":"F","p1":45.7,"p2":26.5,"p3":17.4,"p4":10.4},"Japan":{"group":"F","p1":22.8,"p2":27.8,"p3":25.7,"p4":23.7},"Tunisia":{"group":"F","p1":18.3,"p2":24.4,"p3":28.9,"p4":28.4},"Sweden":{"group":"F","p1":13.2,"p2":21.3,"p3":28.0,"p4":37.5},"Belgium":{"group":"G","p1":45.2,"p2":27.1,"p3":17.6,"p4":10.1},"Egypt":{"group":"G","p1":21.7,"p2":26.2,"p3":27.2,"p4":24.9},"Iran":{"group":"G","p1":19.1,"p2":25.0,"p3":28.3,"p4":27.6},"New Zealand":{"group":"G","p1":14.0,"p2":21.7,"p3":26.9,"p4":37.4},"Spain":{"group":"H","p1":65.7,"p2":19.4,"p3":9.9,"p4":5.0},"Saudi Arabia":{"group":"H","p1":14.2,"p2":25.4,"p3":30.6,"p4":29.8},"Uruguay":{"group":"H","p1":13.0,"p2":31.5,"p3":31.4,"p4":24.1},"Cape Verde":{"group":"H","p1":7.1,"p2":23.7,"p3":28.1,"p4":41.1},"France":{"group":"I","p1":62.8,"p2":20.4,"p3":11.0,"p4":5.8},"Senegal":{"group":"I","p1":19.1,"p2":29.3,"p3":28.2,"p4":23.4},"Norway":{"group":"I","p1":11.0,"p2":28.1,"p3":30.7,"p4":30.2},"Iraq":{"group":"I","p1":7.1,"p2":22.2,"p3":30.1,"p4":40.6},"Argentina":{"group":"J","p1":63.7,"p2":19.0,"p3":10.7,"p4":6.6},"Algeria":{"group":"J","p1":17.1,"p2":27.1,"p3":29.4,"p4":26.4},"Austria":{"group":"J","p1":12.4,"p2":27.9,"p3":30.4,"p4":29.3},"Jordan":{"group":"J","p1":6.8,"p2":26.0,"p3":29.5,"p4":37.7},"Portugal":{"group":"K","p1":60.2,"p2":21.3,"p3":11.6,"p4":6.9},"Colombia":{"group":"K","p1":19.9,"p2":27.6,"p3":28.1,"p4":24.4},"Uzbekistan":{"group":"K","p1":12.2,"p2":26.9,"p3":30.8,"p4":30.1},"DR Congo":{"group":"K","p1":7.7,"p2":24.2,"p3":29.5,"p4":38.6},"England":{"group":"L","p1":58.4,"p2":21.7,"p3":12.3,"p4":7.6},"Croatia":{"group":"L","p1":21.2,"p2":30.0,"p3":27.3,"p4":21.5},"Ghana":{"group":"L","p1":12.3,"p2":27.0,"p3":30.3,"p4":30.4},"Panama":{"group":"L","p1":8.1,"p2":21.3,"p3":30.1,"p4":40.5}};
@@ -995,8 +1134,7 @@ function _renderGhosts(path){
             targetRow.dataset.origClass=targetRow.className;
             targetRow.dataset.origHtml=targetRow.innerHTML;
             targetRow.className="mt ghost";
-            const _gn0=window.innerWidth<=600?code(_hoverTeam):_hoverTeam;
-            targetRow.innerHTML=`<span class="mt-name">${flag(_hoverTeam)}${_gn0}</span><span class="wp">${fmtPct(r32Prob)}</span>`;
+            targetRow.innerHTML=`<span class="mt-name">${flag(_hoverTeam)}${ownLabel(_hoverTeam)}</span><span class="wp">${fmtPct(r32Prob)}</span>`;
             targetRow.dataset.ghostified="1";
           }
         }
@@ -1025,8 +1163,7 @@ function _renderGhosts(path){
     targetRow.dataset.origClass=targetRow.className;
     targetRow.dataset.origHtml=targetRow.innerHTML;
     targetRow.className="mt ghost";
-    const _gn1=window.innerWidth<=600?code(_hoverTeam):_hoverTeam;
-    targetRow.innerHTML=`<span class="mt-name">${flag(_hoverTeam)}${_gn1}</span><span class="wp">${pct}</span>`;
+    targetRow.innerHTML=`<span class="mt-name">${flag(_hoverTeam)}${ownLabel(_hoverTeam)}</span><span class="wp">${pct}</span>`;
     targetRow.dataset.ghostified="1";
   }
   // Champion ghost: replace champBox content in-place (avoids layout resize)
@@ -1035,8 +1172,7 @@ function _renderGhosts(path){
     const box=document.getElementById("champBox");
     if(box&&!kwins["final"]){
       box.dataset.origChampHtml=box.innerHTML;
-      const _gnC=window.innerWidth<=600?code(_hoverTeam):_hoverTeam;
-      box.innerHTML=`<span class="trophy" style="opacity:.5">🏆</span><span class="cn" style="color:rgba(168,213,71,0.75);font-style:italic">${flag(_hoverTeam)}${_gnC} ${fmtPct(champProb)}</span>`;
+      box.innerHTML=`<span class="trophy" style="opacity:.5">🏆</span><span class="cn" style="color:rgba(168,213,71,0.75);font-style:italic">${flag(_hoverTeam)}${ownLabel(_hoverTeam)} ${fmtPct(champProb)}</span>`;
     }
   }
 }
@@ -1136,7 +1272,8 @@ function buildGroupCard(g){
 
     const badge = lp?`<span class="rb">${lp}</span>`:`<span class="rb"></span>`;
     const ptsVal = d.pts !== undefined ? `<span class="pts">${d.pts}</span>` : `<span class="pts-empty">—</span>`;
-    row.innerHTML=`<span class="tn" title="${team}${OWNER[team]?" \u2014 "+OWNER[team].replace(/&amp;/g,"&"):""}"><span class="tn-flag">${flag(team)}</span><span class="tn-lc">${code(team)}</span></span>${ptsVal}${pcSpans.join("")}${badge}`;
+    row.innerHTML=`<span class="tn"><span class="tn-flag">${flag(team)}</span><span class="tn-own">${ownLabel(team)}</span></span>${ptsVal}${pcSpans.join("")}${badge}`;
+    wireTeamCard(row.querySelector(".tn"), team, { tapWholeEl: true });
 
     // Attach click and hover handlers to each .pc span
     row.querySelectorAll(".pc").forEach(span=>{
@@ -1327,9 +1464,10 @@ function renderThird(){
     btn.className=`t3btn${s?" sel":""}`;
     const isMob=window.innerWidth<=600;
     btn.innerHTML=`<span class="grp">${isMob?group:`Group ${group}`}</span>
-<span>${flag(team)}${isMob?code(team):team}</span>
+<span class="t3-name">${infoFlag(team)}${ownLabel(team)}</span>
 <span class="prob">${prob.toFixed(1)}%</span>`;
     btn.addEventListener("click",()=>toggleT3(group));
+    wireTeamCard(btn, team);
     grid.appendChild(btn);
   });
 }
@@ -1519,7 +1657,9 @@ function renderKOMobile(wrap, leftR32, rightR32, r16, qf, sf, final){
         champBox.className="mob-champ-box";
         champBox.id="champBox";
         if(champ){
-          champBox.innerHTML=`<div class="trophy">🏆</div><div class="cn">${flag(champ)}${code(champ)}</div>${OWNER[champ]?`<div class="champ-own">${ownerShort(champ)} wins the £180!</div>`:""}`;
+          champBox.innerHTML=`<div class="trophy">🏆</div><div class="cn">${flag(champ)}${ownLabel(champ)}</div>${OWNER[champ]?`<div class="champ-own">wins the £100!</div>`:""}`;
+          champBox.style.cursor="pointer";
+          wireTeamCard(champBox, champ, { tapWholeEl: true });
         } else {
           champBox.innerHTML=`<div class="trophy" style="opacity:.25">🏆</div><div class="cl">TBD</div>`;
         }
@@ -1675,7 +1815,9 @@ function renderKO(){
   champBox.className = "champ-box";
   champBox.id = "champBox";
   if(champ){
-    champBox.innerHTML = `<span class="trophy">🏆</span><span class="cn">${flag(champ)}${champ}</span>`;
+    champBox.innerHTML = `<span class="trophy">🏆</span><span><span class="cn">${flag(champ)}${ownLabel(champ)}</span>${OWNER[champ]?`<span class="champ-own">wins the £100!</span>`:""}</span>`;
+    champBox.style.cursor = "pointer";
+    wireTeamCard(champBox, champ, { tapWholeEl: true });
   } else {
     champBox.innerHTML = `<span class="trophy" style="opacity:.25">🏆</span><span class="cl">TBD</span>`;
   }
@@ -1882,15 +2024,18 @@ function buildMatchCard(m, isR32, compact=false){
     row.className=`mt${isW?" won":""}${isL?" lst":""}`;
 
     const wp=prob!==null?`<span class="wp">${(prob*100).toFixed(0)}%</span>`:"";
-    const nameStr = compact ? `${flag(team)}${code(team)}` : `${flag(team)}${team}`;
-    row.innerHTML=`<span class="mt-name">${nameStr}</span>${wp}`;
+    // people-first: owner name labels the row; tapping the flag opens the
+    // team card without consuming the row's tap-to-advance
+    row.innerHTML=`<span class="mt-name">${infoFlag(team)}${ownLabel(team)}</span>${wp}`;
 
     row.addEventListener("click",()=>{
       if(!a||!b) return;
       pickWinner(id,team);
     });
-    row.addEventListener("mouseenter",()=>{ if(team&&!isL) showBracketProjection(team,id); });
-    row.addEventListener("mouseleave", hideProjection);
+    row.addEventListener("mouseenter",()=>{ if(team&&!isL) showBracketProjection(team,id); showTeamCard(team,row); });
+    row.addEventListener("mouseleave",()=>{ hideProjection(); hideTeamCard(); });
+    const tap=row.querySelector(".info-tap");
+    if(tap) tap.addEventListener("click", e=>{ e.stopPropagation(); toggleTeamCard(team,row); });
     card.appendChild(row);
   });
   return card;
@@ -2035,6 +2180,15 @@ fetch(_WC_DATA_URL)
   .then(d => { TEAM_DATA = d.team_data; if(d.elo_data) ELO = d.elo_data; })
   .catch(() => { TEAM_DATA = TEAM_DATA_FALLBACK; })
   .finally(() => {
+    // Pristine champion distribution for the team card's fallback — must be
+    // computed BEFORE autofill, while no positions/winners are locked in.
+    try {
+      _clearDistCache();
+      const dist = _getWinnerDist("final");
+      CHAMP_FALLBACK = {};
+      for(const [t, p] of Object.entries(dist)) CHAMP_FALLBACK[t] = p * 100;
+      _clearDistCache();
+    } catch(e) { /* card simply omits the probability line */ }
     // Saints baseline: open pre-filled with the model's most likely outcomes
     autoFillGroups();
     grpAutoFillActive = true;

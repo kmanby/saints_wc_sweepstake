@@ -138,6 +138,33 @@ function sampleQualifyingThirds(thirdByGroup, effElo) {
   return entries.slice(0, 8).map(e => e.g).sort();
 }
 
+// ---------- bracket resolution shared by the sampled sims and the modal replay ----------
+function makeResolveSide(first, second, third, thirdMap) {
+  return (def, side) => {
+    const s = def[side];
+    if (s && s.pos === 1) return first[s.group];
+    if (s && s.pos === 2) return second[s.group];
+    // third-place side: routed via the official table, keyed by the 1st-placed partner
+    const other = def[side === "a" ? "b" : "a"];
+    const slot = thirdMap["1" + other.group];   // e.g. "3E"
+    return third[slot.slice(1)];
+  };
+}
+
+// final's loser is the runner-up; the two losing semifinalists meet in the
+// third-place playoff (decide(A,B) returns the playoff winner)
+function podium(winners, M, decide) {
+  const champion = winners["final"];
+  const [sfA, sfB] = M.FEEDERS["final"];
+  const runnerUp = winners[sfA] === champion ? winners[sfB] : winners[sfA];
+  const loserOf = sfid => {
+    const [fa, fb] = M.FEEDERS[sfid];
+    return winners[sfid] === winners[fa] ? winners[fb] : winners[fa];
+  };
+  const third = decide(loserOf(sfA), loserOf(sfB));
+  return { champion, runnerUp, third };
+}
+
 // ---------- one full tournament ----------
 function simulateOnce(M, TD, groupTeams, tally) {
   const first = {}, second = {}, third = {};
@@ -151,18 +178,9 @@ function simulateOnce(M, TD, groupTeams, tally) {
   const thirdMap = M.THIRD_COMBOS[comboKey];
   if (!thirdMap) throw new Error("No third-place combo for " + comboKey);
 
-  const resolveSide = (def, side) => {
-    const s = def[side];
-    if (s && s.pos === 1) return first[s.group];
-    if (s && s.pos === 2) return second[s.group];
-    // third-place side: routed via the official table, keyed by the 1st-placed partner
-    const other = def[side === "a" ? "b" : "a"];
-    const slot = thirdMap["1" + other.group];   // e.g. "3E"
-    return third[slot.slice(1)];
-  };
+  const resolveSide = makeResolveSide(first, second, third, thirdMap);
 
   const winners = {};
-  const reached = { r16: [], qf: [], sf: [], f: [] };
 
   for (const [sid, def] of Object.entries(M.R32_SLOT_DEFS)) {
     const A = resolveSide(def, "a"), B = resolveSide(def, "b");
@@ -180,8 +198,43 @@ function simulateOnce(M, TD, groupTeams, tally) {
     tally[A][r]++; tally[B][r]++;
   }
 
-  tally[winners["final"]].win++;
-  return winners["final"];
+  // NB: the playoff consumes one extra rand() per sim, so tallies for a given
+  // seed differ slightly from the pre-playoff sim version (same model, shifted
+  // stream) — a one-time discontinuity, not a model change
+  const pod = podium(winners, M, (A, B) => rand() < M.winProb(A, B) ? A : B);
+  tally[pod.champion].win++;
+  tally[pod.runnerUp].runnerUp++;
+  tally[pod.third].third++;
+}
+
+// ---------- the single most-likely playthrough ----------
+// Mirrors the wall chart's autosim exactly: groups ranked by p1, best 8
+// thirds by p3, every knockout match (and the playoff) to the favourite —
+// so the index chart's "simulated draw" matches the pre-filled wall chart.
+function modalScenario(M, TD, groupTeams) {
+  const first = {}, second = {}, third = {};
+  for (const g of M.GROUPS) {
+    const ranked = [...groupTeams[g]].sort((a, b) => TD[b].p1 - TD[a].p1);
+    first[g] = ranked[0]; second[g] = ranked[1]; third[g] = ranked[2];
+  }
+
+  const qualGroups = M.GROUPS
+    .map(g => ({ g, p: TD[third[g]].p3 }))
+    .sort((a, b) => b.p - a.p).slice(0, 8).map(e => e.g).sort();
+  const thirdMap = M.THIRD_COMBOS[qualGroups.join("")];
+  if (!thirdMap) throw new Error("No third-place combo for modal scenario");
+
+  const resolveSide = makeResolveSide(first, second, third, thirdMap);
+  const favourite = (A, B) => M.winProb(A, B) >= 0.5 ? A : B;
+
+  const winners = {};
+  for (const [sid, def] of Object.entries(M.R32_SLOT_DEFS)) {
+    winners[sid] = favourite(resolveSide(def, "a"), resolveSide(def, "b"));
+  }
+  for (const [mid, [fa, fb]] of Object.entries(M.FEEDERS)) {
+    winners[mid] = favourite(winners[fa], winners[fb]);
+  }
+  return podium(winners, M, favourite);
 }
 
 // ---------- main ----------
@@ -213,32 +266,42 @@ async function main() {
   for (const g of M.GROUPS) if (groupTeams[g].length !== 4)
     throw new Error(`Group ${g} has ${groupTeams[g].length} teams`);
 
-  const tally = Object.fromEntries(teams.map(t => [t, { r32: 0, r16: 0, qf: 0, sf: 0, f: 0, win: 0 }]));
+  const tally = Object.fromEntries(teams.map(t =>
+    [t, { r32: 0, r16: 0, qf: 0, sf: 0, f: 0, win: 0, runnerUp: 0, third: 0 }]));
   for (let i = 0; i < SIMS; i++) simulateOnce(M, TD, groupTeams, tally);
 
+  const modal = modalScenario(M, TD, groupTeams);
+
   const pct = n => +(n / SIMS * 100).toFixed(2);
+  const sortedPctMap = key => Object.fromEntries(
+    teams.map(t => [t, pct(tally[t][key])]).sort((a, b) => b[1] - a[1]));
   const out = {
     generated: new Date().toISOString(),
     seed: SEED, sims: SIMS, source, source_updated: sourceUpdated,
-    method: "Monte Carlo over official bracket; groups from Sports4cast p1-p4 marginals; knockouts from wall-chart Elo model",
-    champion: Object.fromEntries(
-      teams.map(t => [t, pct(tally[t].win)]).sort((a, b) => b[1] - a[1])
-    ),
+    method: "Monte Carlo over official bracket; groups from Sports4cast p1-p4 marginals; knockouts (incl. third-place playoff) from wall-chart Elo model; modal = single most-likely playthrough, matching the wall chart's autosim",
+    champion: sortedPctMap("win"),
+    runnerUp: sortedPctMap("runnerUp"),
+    third: sortedPctMap("third"),
+    modal,
     stages: Object.fromEntries(teams.map(t => [t, {
       r32: pct(tally[t].r32), r16: pct(tally[t].r16), qf: pct(tally[t].qf),
       sf: pct(tally[t].sf), f: pct(tally[t].f), win: pct(tally[t].win),
+      runnerUp: pct(tally[t].runnerUp), third: pct(tally[t].third),
     }])),
   };
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   fs.writeFileSync(outPath, JSON.stringify(out, null, 2));
 
-  const champSum = Object.values(out.champion).reduce((s, v) => s + v, 0);
   console.log(`sims=${SIMS} seed=${SEED} source=${source}`);
-  console.log(`champion total = ${champSum.toFixed(2)}% (must be 100)`);
+  for (const key of ["champion", "runnerUp", "third"]) {
+    const sum = Object.values(out[key]).reduce((s, v) => s + v, 0);
+    console.log(`${key} total = ${sum.toFixed(2)}% (must be 100)`);
+    if (Math.abs(sum - 100) > 0.5) throw new Error(key + " probabilities do not sum to 100");
+  }
+  console.log(`modal podium: 1st ${modal.champion}, 2nd ${modal.runnerUp}, 3rd ${modal.third}`);
   console.log("top 8:", Object.entries(out.champion).slice(0, 8)
     .map(([t, v]) => `${t} ${v}%`).join(", "));
-  if (Math.abs(champSum - 100) > 0.5) throw new Error("Champion probabilities do not sum to 100");
 }
 
 main().catch(e => { console.error("SIM FAILED:", e.message); process.exit(1); });

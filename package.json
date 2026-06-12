@@ -1,0 +1,7 @@
+{
+  "devDependencies": {
+    "deno": "^2.8.3",
+    "jsdom": "^29.1.1",
+    "netlify-cli": "^26.1.0"
+  }
+}
