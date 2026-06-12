@@ -73,7 +73,7 @@ Club sweepstake site for Saints CC (amateur cricket club). 48 tickets, 48 teams,
 ## Roadmap (in order)
 1. **[BLOCKED on new API key]** Capture real `/wc2026/chances` response;
    build team-name normaliser + unmatched-team warning.
-2. **Cumulative win-odds chart** on index.html: one bar per PERSON (33 people,
+2. [LARGELY DONE — now driven by daily-sim.json] **Cumulative win-odds chart** on index.html: one bar per PERSON (33 people,
    teams summed — data in `site/data/sweepstake.json` → `people`), sorted
    descending by summed outright-win probability. Gold World Cup trophy icon
    above 1st, silver medal 2nd, bronze 3rd. Refresh from `/api/chances` on
@@ -85,6 +85,22 @@ Club sweepstake site for Saints CC (amateur cricket club). 48 tickets, 48 teams,
    Kit will supply example HTML to build from — DO NOT design speculatively.
    May auto-populate from `/api/fixtures` if it carries results; confirm first.
 4. Retire countdown remnants on index.html as tracker features land.
+
+## Daily sim subsystem
+- `sim/simulate.mjs` runs a deterministic Monte Carlo of the whole tournament
+  (default 10,000 sims, seed = today's date) and writes
+  `site/data/daily-sim.json`. `.github/workflows/daily-sim.yml` runs it at
+  06:35 UK daily and commits the result, which redeploys Netlify.
+- The sim EXTRACTS its model from site/wallchart.html at runtime (vm + DOM
+  stubs) — Elo, winProb, co-host boost, bracket slots, third-place allocation.
+  One source of truth: never duplicate those tables into the sim.
+- Group orders are sampled from Sports4cast's daily p1–p4 marginals (live GCS
+  JSON, embedded snapshot as fallback); qualifying thirds are Elo-weighted;
+  knockout advancement uses winProb directly (no draws). Documented
+  approximations — refine, don't silently change.
+- index.html odds-chart source priority: daily-sim.json → wall-chart
+  postMessage champion dist → hard-coded snapshot. Champion %s in the JSON
+  already sum to 100; never renormalise them.
 
 ## Dev workflow
 - Local: `netlify dev` (needs `.env` with `SPORTS4CAST_KEY=...`).

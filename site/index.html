@@ -219,7 +219,7 @@
 <section class="chart-wrap">
   <h2 class="section-h">Who&rsquo;s Winning the Sweepstake?</h2>
   <div class="chart-sub">Each person&rsquo;s combined chance of holding the World Cup winner<br>
-  <span class="src">Sports4cast model &middot; updated 12 Jun 2026 &middot; 10,000 sims</span></div>
+  <span class="src" id="oddsSrc">Sports4cast model &middot; updated 12 Jun 2026 &middot; 10,000 sims</span></div>
   <div class="chart-rows" id="chartRows"></div>
   <div class="chart-note">Teams the model rates below 0.1% count as zero &mdash; sorry, Iraq. Live daily odds coming soon.</div>
 </section>
@@ -408,42 +408,96 @@
   fillRibbon("ribbonBottom");
 
   // ---------- cumulative win-odds chart (hard-coded 12 Jun 2026; API feed later) ----------
-  const WINPC = {"es":11,"fr":11,"gb-eng":10,"de":8,"nl":8,"pt":7,"br":7,"ar":6,"be":6,"hr":4,
+  const WINPC_SNAPSHOT = {"es":11,"fr":11,"gb-eng":10,"de":8,"nl":8,"pt":7,"br":7,"ar":6,"be":6,"hr":4,
     "no":3,"ch":3,"tr":3,"co":2,"at":2,"uy":2,"se":1,"gb-sct":1.0,"ba":0.9,"mx":0.9,"py":0.5,
     "ec":0.3,"ma":0.3,"cz":0.3,"sn":0.2,"eg":0.2,"ci":0.2,"dz":0.1,"kr":0.1,"ir":0.1,"jp":0.1,
     "us":0.1,"au":0.1,"za":0,"tn":0,"ca":0,"cd":0,"cv":0,"jo":0,"iq":0,"gh":0,"uz":0,"qa":0,
     "sa":0,"cw":0,"ht":0,"pa":0,"nz":0};
 
-  const peopleMap = {};
-  for(const [code, ticket] of Object.entries(OWNERS)){
-    const person = ticket.replace(/\s+\d+$/,"");
-    if(!peopleMap[person]) peopleMap[person] = {teams:[], sum:0};
-    peopleMap[person].teams.push(code);
-    peopleMap[person].sum += WINPC[code];
+  const NAME2CODE = {"USA":"us","Canada":"ca","Mexico":"mx","Argentina":"ar","Brazil":"br",
+    "Uruguay":"uy","Colombia":"co","Ecuador":"ec","Paraguay":"py","England":"gb-eng",
+    "Scotland":"gb-sct","France":"fr","Spain":"es","Portugal":"pt","Germany":"de",
+    "Netherlands":"nl","Belgium":"be","Croatia":"hr","Switzerland":"ch","Austria":"at",
+    "Norway":"no","Bosnia-Herzegovina":"ba","Sweden":"se","Turkey":"tr","Czechia":"cz",
+    "Japan":"jp","South Korea":"kr","Iran":"ir","Australia":"au","Jordan":"jo",
+    "Uzbekistan":"uz","Qatar":"qa","Saudi Arabia":"sa","Iraq":"iq","Morocco":"ma",
+    "Senegal":"sn","Egypt":"eg","Algeria":"dz","Tunisia":"tn","Ivory Coast":"ci",
+    "Ghana":"gh","South Africa":"za","Cape Verde":"cv","DR Congo":"cd","Panama":"pa",
+    "Curacao":"cw","Haiti":"ht","New Zealand":"nz"};
+
+  function renderOddsChart(winpc, srcText, unmatched){
+    const peopleMap = {};
+    for(const [code, ticket] of Object.entries(OWNERS)){
+      const person = ticket.replace(/\s+\d+$/,"");
+      if(!peopleMap[person]) peopleMap[person] = {teams:[], sum:0};
+      peopleMap[person].teams.push(code);
+      peopleMap[person].sum += (winpc[code] ?? 0);
+    }
+    const standings = Object.entries(peopleMap)
+      .map(([name,p])=>({name, teams:p.teams, sum:+p.sum.toFixed(1)}))
+      .sort((a,b)=>b.sum-a.sum);
+
+    const tiers = [...new Set(standings.map(r=>r.sum))];
+    const medalFor = v => v===tiers[0] ? "\u{1F3C6}" : v===tiers[1] ? "\u{1F948}" : v===tiers[2] ? "\u{1F949}" : "";
+    const fmtPct = v => v===0 ? "<0.1%" : v.toFixed(1) + "%";
+    const maxSum = standings[0].sum || 1;
+
+    const chartRows = document.getElementById("chartRows");
+    chartRows.innerHTML = "";
+    standings.forEach(r=>{
+      const row = document.createElement("div");
+      row.className = "crow" + (r.sum===0 ? " zero" : "");
+      const flags = r.teams.map(c=>`<img src="${flagData(c)}" alt="${TEAM_NAME[c]}" title="${TEAM_NAME[c]}">`).join("");
+      row.innerHTML = `
+        <div class="cmedal">${medalFor(r.sum)}</div>
+        <div class="cname"><div class="nm" title="${r.name.replace(/&amp;/g,"&")}">${r.name}</div><div class="cflags">${flags}</div></div>
+        <div class="cbar"><div class="cfill"></div><span class="cval">${fmtPct(r.sum)}</span></div>`;
+      chartRows.appendChild(row);
+      const wdt = Math.max(r.sum/maxSum*100, 1.2);
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ row.querySelector(".cfill").style.width = wdt + "%"; }));
+    });
+
+    const srcEl = document.getElementById("oddsSrc");
+    if(srcEl && srcText){
+      srcEl.innerHTML = srcText + (unmatched && unmatched.length
+        ? ` &middot; <span style="color:#E07A6A">unmatched teams: ${unmatched.join(", ")}</span>` : "");
+    }
   }
-  const standings = Object.entries(peopleMap)
-    .map(([name,p])=>({name, teams:p.teams, sum:+p.sum.toFixed(1)}))
-    .sort((a,b)=>b.sum-a.sum);
 
-  // medals by distinct probability tier (ties share the podium)
-  const tiers = [...new Set(standings.map(r=>r.sum))];
-  const medalFor = v => v===tiers[0] ? "\u{1F3C6}" : v===tiers[1] ? "\u{1F948}" : v===tiers[2] ? "\u{1F949}" : "";
+  renderOddsChart(WINPC_SNAPSHOT, "Sports4cast model &middot; 12 Jun 2026 snapshot");
 
-  const fmtPct = v => v===0 ? "<0.1%" : (v<1 ? v.toFixed(1) : v.toFixed(1)) + "%";
-  const maxSum = standings[0].sum || 1;
+  // first choice: the canonical daily Monte Carlo, committed each morning by the sim bot
+  let liveOddsApplied = false;
+  fetch("data/daily-sim.json")
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if(!d || !d.champion) return;
+      const live = {}, unmatched = [];
+      for(const [team, v] of Object.entries(d.champion)){
+        const code = NAME2CODE[team];
+        if(code) live[code] = v;
+        else unmatched.push(team);
+      }
+      liveOddsApplied = true;
+      const when = d.generated ? d.generated.slice(0,10) : "";
+      renderOddsChart(live, `Daily ${(d.sims||0).toLocaleString()}-sim Monte Carlo &middot; ${when}`, unmatched);
+    })
+    .catch(()=>{});
 
-  const chartRows = document.getElementById("chartRows");
-  standings.forEach(r=>{
-    const row = document.createElement("div");
-    row.className = "crow" + (r.sum===0 ? " zero" : "");
-    const flags = r.teams.map(c=>`<img src="${flagData(c)}" alt="${TEAM_NAME[c]}" title="${TEAM_NAME[c]}">`).join("");
-    row.innerHTML = `
-      <div class="cmedal">${medalFor(r.sum)}</div>
-      <div class="cname"><div class="nm" title="${r.name.replace(/&amp;/g,"&")}">${r.name}</div><div class="cflags">${flags}</div></div>
-      <div class="cbar"><div class="cfill"></div><span class="cval">${fmtPct(r.sum)}</span></div>`;
-    chartRows.appendChild(row);
-    const w = Math.max(r.sum/maxSum*100, 1.2);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{ row.querySelector(".cfill").style.width = w + "%"; }));
+  // live: the wall chart publishes its model's champion distribution on load
+  window.addEventListener("message", e=>{
+    if(!(e.data && e.data.type === "s4c-champ-dist" && e.data.id === "wc2026" && e.data.dist)) return;
+    if(liveOddsApplied) return;   // the daily sim file is the canonical source
+    const dist = e.data.dist;
+    const total = Object.values(dist).reduce((s,v)=>s+(+v||0),0);
+    if(!(total > 0)) return;
+    const live = {}, unmatched = [];
+    for(const [team,v] of Object.entries(dist)){
+      const code = NAME2CODE[team];
+      if(code) live[code] = v/total*100;
+      else unmatched.push(team);
+    }
+    renderOddsChart(live, "Live &middot; derived from today&rsquo;s wall-chart model", unmatched);
   });
 
   // wall chart iframe auto-height (the widget posts its height)
