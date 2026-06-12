@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Saints CC — World Cup Sweepstake Draw</title>
+<title>Saints CC — World Cup Sweepstake Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tangerine:wght@400;700&family=Saira+Condensed:wght@500;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -66,63 +66,51 @@
     text-shadow:0 2px 12px rgba(0,0,0,.5);
   }
 
-  /* ---------- scoreboard countdown ---------- */
-  .board{
-    margin:1.6rem auto 1.2rem;padding:1.6rem 1.8rem 1.3rem;
+  /* ---------- win-odds chart ---------- */
+  .chart-wrap{
+    margin:1.6rem auto 1.8rem;padding:1.6rem 1.4rem 1.3rem;
     background:var(--green-panel);
     border:2px solid var(--gold-soft);border-radius:10px;
     box-shadow:inset 0 0 40px rgba(0,0,0,.6), 0 10px 30px rgba(0,0,0,.45);
-    text-align:center;max-width:92vw;
+    max-width:760px;width:94vw;
   }
-  .board-title{
+  .section-h{
     font-family:'Saira Condensed',sans-serif;text-transform:uppercase;
-    letter-spacing:.4em;font-size:.78rem;color:var(--gold);margin-bottom:1rem;
+    letter-spacing:.35em;font-weight:500;font-size:.9rem;color:var(--gold);
+    text-align:center;margin-bottom:.4rem;
   }
-  .clock{display:flex;gap:clamp(.5rem,2vw,1.2rem);justify-content:center;align-items:flex-start}
-  .unit{display:flex;flex-direction:column;align-items:center;gap:.45rem}
-  .tile{
-    font-family:'Saira Condensed',sans-serif;font-weight:700;
-    font-variant-numeric:tabular-nums;
-    font-size:clamp(2.6rem, 10vw, 5rem);line-height:1;color:var(--cream);
-    background:linear-gradient(#13301F, #0C2417);
-    border:1px solid rgba(217,169,60,.5);border-radius:8px;
-    padding:.55rem .65rem .45rem;min-width:clamp(4.2rem, 16vw, 7.2rem);
-    position:relative;box-shadow:inset 0 -10px 18px rgba(0,0,0,.5);
+  .chart-sub{text-align:center;font-style:italic;font-size:.92rem;opacity:.85;margin-bottom:1.2rem;line-height:1.5}
+  .chart-sub .src{font-size:.75rem;opacity:.75;font-style:normal;
+    font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.15em}
+  .chart-rows{display:flex;flex-direction:column;gap:.45rem}
+  .crow{
+    display:grid;grid-template-columns:1.7rem minmax(118px, 32%) 1fr;
+    gap:.55rem;align-items:center;
   }
-  .tile::after{content:"";position:absolute;left:0;right:0;top:50%;border-top:1px solid rgba(0,0,0,.55)}
-  .label{font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.3em;font-size:.7rem;color:var(--gold)}
-  .colon{font-family:'Saira Condensed',sans-serif;font-size:clamp(2rem,8vw,4rem);color:var(--gold);align-self:center;padding-bottom:1.6rem;opacity:.8}
-  .draw-time{margin-top:1.1rem;font-style:italic;font-size:.95rem;opacity:.85}
-  .done{
-    font-family:'Tangerine','Monotype Corsiva',cursive;
-    font-size:clamp(3rem, 9vw, 5rem);color:var(--gold);
-    line-height:1;padding:1rem 0 .4rem;display:none;
+  .cmedal{font-size:1.05rem;text-align:center;line-height:1}
+  .cname{min-width:0}
+  .cname .nm{
+    font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:.84rem;
+    text-transform:uppercase;letter-spacing:.04em;line-height:1.15;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
-
-  /* ---------- webcast card ---------- */
-  .webcast{
-    margin:0 auto 1.8rem;background:rgba(0,0,0,.28);
-    border:1px solid rgba(217,169,60,.45);border-radius:10px;
-    padding:1.2rem 1.6rem 1.4rem;text-align:center;max-width:92vw;width:560px;
+  .cname .cflags{display:flex;gap:.22rem;margin-top:.18rem}
+  .cname .cflags img{width:17px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.5)}
+  .cbar{position:relative;height:1.5rem;background:#08160F;border:1px solid rgba(217,169,60,.28);border-radius:4px;overflow:hidden}
+  .cfill{
+    position:absolute;inset:0 auto 0 0;border-radius:3px;
+    background:linear-gradient(90deg, var(--gold-soft), var(--gold));
+    width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1);
   }
-  .webcast h2{
-    font-family:'Saira Condensed',sans-serif;text-transform:uppercase;
-    letter-spacing:.35em;font-weight:500;font-size:.85rem;color:var(--gold);margin-bottom:.5rem;
+  .crow.zero .cfill{background:rgba(242,234,211,.22)}
+  .cval{
+    position:absolute;right:.5rem;top:50%;transform:translateY(-50%);
+    font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:.8rem;
+    letter-spacing:.04em;color:var(--cream);text-shadow:0 1px 2px rgba(0,0,0,.7);
   }
-  .webcast .when{font-size:1.05rem;margin-bottom:.2rem}
-  .webcast .tz{font-style:italic;font-size:.85rem;opacity:.7;margin-bottom:1rem}
-  .join{
-    display:inline-block;font-family:'Saira Condensed',sans-serif;text-transform:uppercase;
-    letter-spacing:.22em;font-weight:700;font-size:.95rem;
-    color:var(--maroon-deep);
-    background:linear-gradient(#E9BC56, var(--gold));
-    border:1px solid var(--gold-soft);border-radius:6px;
-    padding:.75rem 1.6rem;text-decoration:none;
-    box-shadow:0 4px 14px rgba(0,0,0,.4);
-    transition:transform .15s ease, box-shadow .15s ease;
+  .chart-note{
+    margin-top:1rem;text-align:center;font-style:italic;font-size:.8rem;opacity:.6;
   }
-  .join:hover{transform:translateY(-2px);box-shadow:0 7px 18px rgba(0,0,0,.5)}
-  .meet-code{display:block;margin-top:.7rem;font-size:.8rem;opacity:.65;font-style:italic}
 
   /* ---------- 48 nations grid ---------- */
   .nations{max-width:920px;width:94vw;margin:0 auto 2.6rem;text-align:center}
@@ -216,29 +204,16 @@
     </svg>
   </div>
 
-  <div class="sub">FIFA World Cup <span class="wc">Sweepstake Draw</span></div>
+  <div class="sub">FIFA World Cup <span class="wc">Sweepstake Tracker</span></div>
   <div class="headline">48 Teams &middot; One Hat &middot; &pound;180 Pot</div>
 </header>
 
-<section class="board" aria-live="polite">
-  <div class="board-title">Draw of the stumps at midday</div>
-  <div class="clock" id="clock">
-    <div class="unit"><div class="tile" id="h">00</div><div class="label">Hours</div></div>
-    <div class="colon">:</div>
-    <div class="unit"><div class="tile" id="m">00</div><div class="label">Minutes</div></div>
-    <div class="colon">:</div>
-    <div class="unit"><div class="tile" id="s">00</div><div class="label">Seconds</div></div>
-  </div>
-  <div class="done" id="done">It&rsquo;s draw time! &#9917;</div>
-  <div class="draw-time" id="drawTime">Names out of the hat at 12:00 today</div>
-</section>
-
-<section class="webcast">
-  <h2>Watch the Draw Live</h2>
-  <div class="when">Thursday 11 June &middot; 12:00 &ndash; 12:30</div>
-  <div class="tz">Europe/London &middot; Google Meet</div>
-  <a class="join" href="https://meet.google.com/rbn-yzkn-sxf" target="_blank" rel="noopener">&#9654;&nbsp; Join the Live Webcast</a>
-  <span class="meet-code">meet.google.com/rbn-yzkn-sxf</span>
+<section class="chart-wrap">
+  <h2 class="section-h">Who&rsquo;s Winning the Sweepstake?</h2>
+  <div class="chart-sub">Each person&rsquo;s combined chance of holding the World Cup winner<br>
+  <span class="src">Sports4cast model &middot; updated 12 Jun 2026 &middot; 10,000 sims</span></div>
+  <div class="chart-rows" id="chartRows"></div>
+  <div class="chart-note">Teams the model rates below 0.1% count as zero &mdash; sorry, Iraq. Live daily odds coming soon.</div>
 </section>
 
 <section class="nations">
@@ -367,6 +342,7 @@
     "nz":"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"
   };
   const flagData = c => `data:image/png;base64,${FLAGS[c]}`;
+  const TEAM_NAME = Object.fromEntries(nations.map(([c,n])=>[c,n]));
   const flagUrl = flagData;
   const flagUrlSmall = flagData;
   const flagUrlBig = flagData;
@@ -387,7 +363,7 @@
     grid.appendChild(d);
   });
 
-  const WINPROB = {"fr":"11%","es":"11%","gb-eng":"10%","de":"8%","nl":"8%","br":"7%","pt":"7%","ar":"6%","be":"6%","hr":"4%","tr":"3%","ch":"3%","no":"3%","co":"3%","uy":"2%","at":"2%","se":"1%","ba":"1%","gb-sct":"1%","ma":"0.5%","py":"0.4%","mx":"0.4%","sn":"0.4%","ec":"0.3%","cz":"0.3%","jp":"0.3%","dz":"0.2%","ci":"0.2%","eg":"0.2%","ir":"0.1%","kr":"0.1%","us":"0.1%","au":"0.1%","ca":"<0.1%","gh":"<0.1%","uz":"<0.1%","za":"<0.1%","tn":"<0.1%","cv":"<0.1%","cd":"<0.1%","iq":"<0.1%","jo":"<0.1%","qa":"<0.1%","sa":"<0.1%","cw":"<0.1%","ht":"<0.1%","pa":"<0.1%","nz":"<0.1%"};
+  const WINPROB = {"es":"11%","fr":"11%","gb-eng":"10%","de":"8%","nl":"8%","pt":"7%","br":"7%","ar":"6%","be":"6%","hr":"4%","no":"3%","ch":"3%","tr":"3%","co":"2%","at":"2%","uy":"2%","se":"1%","gb-sct":"1%","ba":"0.9%","mx":"0.9%","py":"0.5%","ec":"0.3%","ma":"0.3%","cz":"0.3%","sn":"0.2%","eg":"0.2%","ci":"0.2%","dz":"0.1%","kr":"0.1%","ir":"0.1%","jp":"0.1%","us":"0.1%","au":"0.1%","za":"<0.1%","tn":"<0.1%","ca":"<0.1%","cd":"<0.1%","cv":"<0.1%","jo":"<0.1%","iq":"<0.1%","gh":"<0.1%","uz":"<0.1%","qa":"<0.1%","sa":"<0.1%","cw":"<0.1%","ht":"<0.1%","pa":"<0.1%","nz":"<0.1%"};
 
   // modal
   const overlay=document.getElementById("overlay"),
@@ -417,41 +393,44 @@
   fillRibbon("ribbonTop");
   fillRibbon("ribbonBottom");
 
-  // ---------- countdown to midday UK time (12:00 BST = 11:00 UTC, 11 June 2026) ----------
-  const target = new Date(Date.UTC(2026, 5, 11, 11, 0, 0));
+  // ---------- cumulative win-odds chart (hard-coded 12 Jun 2026; API feed later) ----------
+  const WINPC = {"es":11,"fr":11,"gb-eng":10,"de":8,"nl":8,"pt":7,"br":7,"ar":6,"be":6,"hr":4,
+    "no":3,"ch":3,"tr":3,"co":2,"at":2,"uy":2,"se":1,"gb-sct":1.0,"ba":0.9,"mx":0.9,"py":0.5,
+    "ec":0.3,"ma":0.3,"cz":0.3,"sn":0.2,"eg":0.2,"ci":0.2,"dz":0.1,"kr":0.1,"ir":0.1,"jp":0.1,
+    "us":0.1,"au":0.1,"za":0,"tn":0,"ca":0,"cd":0,"cv":0,"jo":0,"iq":0,"gh":0,"uz":0,"qa":0,
+    "sa":0,"cw":0,"ht":0,"pa":0,"nz":0};
 
-  // show overseas viewers their local equivalent
-  const ukFmt = new Intl.DateTimeFormat("en-GB",{hour:"2-digit",minute:"2-digit",timeZone:"Europe/London"});
-  const localFmt = new Intl.DateTimeFormat(undefined,{hour:"2-digit",minute:"2-digit"});
-  const ukTime = ukFmt.format(target), localTime = localFmt.format(target);
-  let label = "Names out of the hat at " + ukTime + " UK time";
-  if (localTime !== ukTime) label += " (" + localTime + " where you are)";
-  document.getElementById("drawTime").textContent = label;
-
-  const h=document.getElementById("h"),
-        m=document.getElementById("m"),
-        s=document.getElementById("s"),
-        clock=document.getElementById("clock"),
-        done=document.getElementById("done");
-
-  function pad(n){return String(n).padStart(2,"0")}
-
-  function tick(){
-    const diff = target - new Date();
-    if(diff <= 0){
-      clock.style.display="none";
-      done.style.display="block";
-      document.getElementById("drawTime").textContent="The sweepstake draw is under way \u2014 good luck!";
-      clearInterval(timer);
-      return;
-    }
-    const secs = Math.floor(diff/1000);
-    h.textContent = pad(Math.floor(secs/3600));
-    m.textContent = pad(Math.floor((secs%3600)/60));
-    s.textContent = pad(secs%60);
+  const peopleMap = {};
+  for(const [code, ticket] of Object.entries(OWNERS)){
+    const person = ticket.replace(/\s+\d+$/,"");
+    if(!peopleMap[person]) peopleMap[person] = {teams:[], sum:0};
+    peopleMap[person].teams.push(code);
+    peopleMap[person].sum += WINPC[code];
   }
-  tick();
-  const timer = setInterval(tick, 250);
+  const standings = Object.entries(peopleMap)
+    .map(([name,p])=>({name, teams:p.teams, sum:+p.sum.toFixed(1)}))
+    .sort((a,b)=>b.sum-a.sum);
+
+  // medals by distinct probability tier (ties share the podium)
+  const tiers = [...new Set(standings.map(r=>r.sum))];
+  const medalFor = v => v===tiers[0] ? "\u{1F3C6}" : v===tiers[1] ? "\u{1F948}" : v===tiers[2] ? "\u{1F949}" : "";
+
+  const fmtPct = v => v===0 ? "<0.1%" : (v<1 ? v.toFixed(1) : v.toFixed(1)) + "%";
+  const maxSum = standings[0].sum || 1;
+
+  const chartRows = document.getElementById("chartRows");
+  standings.forEach(r=>{
+    const row = document.createElement("div");
+    row.className = "crow" + (r.sum===0 ? " zero" : "");
+    const flags = r.teams.map(c=>`<img src="${flagData(c)}" alt="${TEAM_NAME[c]}" title="${TEAM_NAME[c]}">`).join("");
+    row.innerHTML = `
+      <div class="cmedal">${medalFor(r.sum)}</div>
+      <div class="cname"><div class="nm" title="${r.name.replace(/&amp;/g,"&")}">${r.name}</div><div class="cflags">${flags}</div></div>
+      <div class="cbar"><div class="cfill"></div><span class="cval">${fmtPct(r.sum)}</span></div>`;
+    chartRows.appendChild(row);
+    const w = Math.max(r.sum/maxSum*100, 1.2);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ row.querySelector(".cfill").style.width = w + "%"; }));
+  });
 </script>
 
 </body>
