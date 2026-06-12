@@ -103,7 +103,16 @@ Club sweepstake site for Saints CC (amateur cricket club). 48 tickets, 48 teams,
   already sum to 100; never renormalise them.
 
 ## Dev workflow
-- Local: `netlify dev` (needs `.env` with `SPORTS4CAST_KEY=...`).
+- Local: `npm install`, then `npx netlify dev --offline` (add `.env` with
+  `SPORTS4CAST_KEY=...` for a working proxy; without it `/api/*` returns the
+  deliberate "Server not configured" 500).
+- netlify-cli insists on a Deno binary for its edge-functions proxy (we have
+  none) — the npm `deno` devDependency satisfies it in sandboxes where
+  dl.deno.land is blocked.
+- Render check: `node tools/render-check.mjs` against the running dev server —
+  executes each page's JS in jsdom and asserts chart rows, group cards,
+  bracket cards, champion box, and zero page errors. Run it after touching
+  any page; it caught nothing less than everything string-patching broke.
 - Test proxy: `curl http://localhost:8888/api/chances` (or the deployed
   `https://<site>.netlify.app/api/chances`).
 - Deploy: push to `main` → Netlify auto-deploys (site imported from this repo).
