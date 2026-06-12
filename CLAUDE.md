@@ -18,6 +18,9 @@ group stage finishes; do not simulate it.
   - `draw.html` — the Draw Machine used live on draw day (slot-machine reveal,
     crypto-random, no-repeat pool, localStorage persistence). Job done; keep
     for posterity.
+  - `favicon.png` — 64px Saints crest on maroon (`#5C1224`), linked by all
+    three pages. Regenerate from the crest with the snippet in tools/ if the
+    crest changes; it's the one non-embedded image asset.
   - `data/sweepstake.json` — **source of truth for the draw result**: tickets,
     people (grouped), team names + flag codes. Build new features from this,
     not by scraping the HTML.
@@ -93,12 +96,16 @@ group stage finishes; do not simulate it.
 ## Roadmap (in order)
 1. **[BLOCKED on new API key]** Capture real `/wc2026/chances` response;
    build team-name normaliser + unmatched-team warning.
-2. [DONE 12 Jun] **"Who's winning" chart**, two bars per person: Bar A (gold)
-   = summed champion %; Bar B (cream) = payout if the tournament follows the
-   sim's modal playthrough (🏆 £100 / 🥈 £50 / 🥉 £25 on the podium holders
-   only, sorted modal position then Bar A). Fun-fact badges hydrate from
-   daily-sim.json, falling back to static `WINPROB`. Possible later toggle:
-   "chance of holding a finalist" from stage probabilities.
+2. [DONE 12 Jun] **"Who's winning" chart**: one gold bar per person = summed
+   champion %. The sim's modal podium pays out 🏆 £100 / 🥈 £50 / 🥉 £25,
+   shown as a medal (left) + £ amount (beside the name) on the three holders
+   only. The payout still drives the sort (prize-winners first, then by bar)
+   — it is NOT drawn as a second bar (tried it; cream Bar B added noise, Kit
+   cut it 12 Jun). Collapsed to the top 20 with a "Show all 33" toggle
+   (`#chartRows.collapsed` + `#chartMore` button; `chartExpanded` persists
+   across re-renders). Fun-fact badges hydrate from daily-sim.json, falling
+   back to static `WINPROB`. Possible later toggle: "chance of holding a
+   finalist" from stage probabilities.
 3. [DONE — built from Kit's supplied HTML] **Wall chart** with people-first
    labels + team cards. Next phase: real results lock in as the tournament
    progresses (`.tr.locked` CSS hooks exist); may auto-populate from
@@ -130,8 +137,8 @@ group stage finishes; do not simulate it.
   always tell the same story. If the autosim logic in wallchart.html changes,
   change modalScenario to match.
 - index.html odds-chart source priority: daily-sim.json → wall-chart
-  postMessage champion dist → hard-coded snapshot. Bar B / medals render only
-  when `modal` is present (fallback sources draw Bar A alone).
+  postMessage champion dist → hard-coded snapshot. Medals + £ render only
+  when `modal` is present (fallback sources draw the bar alone, no podium).
 
 ## Dev workflow
 - Local: `npm install`, then `npx netlify dev --offline` (add `.env` with

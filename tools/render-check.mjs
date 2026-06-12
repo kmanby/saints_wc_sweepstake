@@ -64,9 +64,9 @@ async function checkIndex({ sim, sweep }) {
   check("odds source is the daily sim", /Monte Carlo/.test(src), src.trim());
   check("no unmatched-team warning", !/unmatched/.test(src), src.trim());
 
-  // two-bar mode: every row has both bars; the modal podium holders (derived
-  // independently from daily-sim.json + sweepstake.json) lead with medals + £
-  check("every row has two bars", rows.every((r) => r.querySelector(".cbar.a") && r.querySelector(".cbar.b")));
+  // single gold bar; the modal podium holders (derived independently from
+  // daily-sim.json + sweepstake.json) lead with a medal + £ beside the name
+  check("every row has a single bar", rows.every((r) => r.querySelectorAll(".cbar").length === 1 && r.querySelector(".cfill")));
   const holderOf = (team) => sweep.tickets.find((t) => t.team === team)?.person;
   const expected = [
     [holderOf(sim.modal.champion), "🏆", "£100"],
@@ -77,16 +77,29 @@ async function checkIndex({ sim, sweep }) {
     const row = rows[i];
     const ok = row.querySelector(".nm")?.textContent === person
       && row.querySelector(".cmedal")?.textContent.includes(medal)
-      && row.querySelector(".cbar.b .cval")?.textContent === amount;
+      && row.querySelector(".cprize")?.textContent === amount;
     check(`row ${i + 1}: ${medal} ${amount} for ${person}`, ok,
-      `got ${row.querySelector(".nm")?.textContent} ${row.querySelector(".cmedal")?.textContent} ${row.querySelector(".cbar.b .cval")?.textContent || "no £"}`);
+      `got ${row.querySelector(".nm")?.textContent} ${row.querySelector(".cmedal")?.textContent} ${row.querySelector(".cprize")?.textContent || "no £"}`);
   });
-  const paidRows = rows.filter((r) => r.querySelector(".cbar.b .cval"));
+  const paidRows = rows.filter((r) => r.querySelector(".cprize"));
   check("£ labels on exactly the podium rows", paidRows.length === new Set(expected.map((e) => e[0])).size,
     `${paidRows.length}`);
+  check("£ amount no longer sits in a bar", rows.every((r) => !r.querySelector(".cbar .cprize, .cbar.b")));
   const rest = rows.slice(3);
-  const sums = rest.map((r) => parseFloat(r.querySelector(".cbar.a .cval").textContent) || 0);
-  check("rest sorted by Bar A desc", sums.every((v, i) => i === 0 || sums[i - 1] >= v));
+  const sums = rest.map((r) => parseFloat(r.querySelector(".cbar .cval").textContent) || 0);
+  check("rest sorted by bar value desc", sums.every((v, i) => i === 0 || sums[i - 1] >= v));
+
+  // top-20 collapse with expand toggle
+  const chartRows = doc.getElementById("chartRows");
+  check("chart collapsed to top 20 by default", chartRows.classList.contains("collapsed"));
+  const moreBtn = doc.querySelector("#chartMore button");
+  check("expand button shows total", !!moreBtn && /Show all 33/.test(moreBtn.textContent), moreBtn?.textContent.trim());
+  moreBtn?.dispatchEvent(new win.MouseEvent("click", { bubbles: true }));
+  const moreBtn2 = doc.querySelector("#chartMore button");
+  check("expanding reveals all rows", !chartRows.classList.contains("collapsed") && /Show top 20/.test(moreBtn2?.textContent || ""),
+    moreBtn2?.textContent.trim());
+  moreBtn2?.dispatchEvent(new win.MouseEvent("click", { bubbles: true }));
+  check("collapsing again re-hides", chartRows.classList.contains("collapsed"));
 
   const grid = doc.querySelectorAll("#flagGrid .nation");
   check("48 nation tiles", grid.length === 48, `${grid.length}`);

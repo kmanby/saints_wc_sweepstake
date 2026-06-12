@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Saints CC — World Cup Sweepstake Tracker</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Tangerine:wght@400;700&family=Saira+Condensed:wght@500;700&family=Spectral:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
@@ -82,35 +84,47 @@
   .chart-sub{text-align:center;font-style:italic;font-size:.92rem;opacity:.85;margin-bottom:1.2rem;line-height:1.5}
   .chart-sub .src{font-size:.75rem;opacity:.75;font-style:normal;
     font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.15em}
-  .chart-rows{display:flex;flex-direction:column;gap:.55rem}
+  .chart-rows{display:flex;flex-direction:column;gap:.5rem}
   .crow{
-    display:grid;grid-template-columns:2.2rem minmax(118px, 32%) 1fr;
+    display:grid;grid-template-columns:2.4rem minmax(120px, 34%) 1fr;
     gap:.55rem;align-items:center;
   }
-  .cmedal{font-size:.95rem;text-align:center;line-height:1.1;letter-spacing:-.1em}
+  .cmedal{font-size:.95rem;text-align:center;line-height:1.1;letter-spacing:-.12em;white-space:nowrap}
   .cname{min-width:0}
+  .cname .nm-row{display:flex;align-items:baseline;gap:.4rem;min-width:0}
   .cname .nm{
     font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:.84rem;
     text-transform:uppercase;letter-spacing:.04em;line-height:1.15;
-    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+  }
+  .cname .cprize{
+    flex:0 0 auto;font-family:'Saira Condensed',sans-serif;font-weight:700;
+    font-size:.8rem;letter-spacing:.03em;color:var(--gold);
   }
   .cname .cflags{display:flex;gap:.22rem;margin-top:.18rem}
   .cname .cflags img{width:17px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.5)}
-  .cbars{display:flex;flex-direction:column;gap:3px;min-width:0}
-  .cbar{position:relative;height:1.3rem;background:#08160F;border:1px solid rgba(217,169,60,.28);border-radius:4px;overflow:hidden}
-  .cbar.b{height:.95rem;border-color:rgba(242,234,211,.16)}
+  .cbar{position:relative;height:1.45rem;background:#08160F;border:1px solid rgba(217,169,60,.28);border-radius:4px;overflow:hidden}
   .cfill{
     position:absolute;inset:0 auto 0 0;border-radius:3px;
     background:linear-gradient(90deg, var(--gold-soft), var(--gold));
     width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1);
   }
-  .cbar.b .cfill{background:linear-gradient(90deg, #8d8068, #F2EAD3)}
-  .crow.zero .cbar.a .cfill{background:rgba(242,234,211,.22)}
+  .crow.zero .cfill{background:rgba(242,234,211,.22)}
   .cval{
     position:absolute;right:.5rem;top:50%;transform:translateY(-50%);
     font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:.8rem;
     letter-spacing:.04em;color:var(--cream);text-shadow:0 1px 2px rgba(0,0,0,.7);
   }
+  /* collapse to the top 20; the rest expand on demand */
+  .chart-rows.collapsed .crow:nth-child(n+21){display:none}
+  .chart-more{text-align:center;margin-top:1.1rem}
+  .more-btn{
+    font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.18em;
+    font-weight:700;font-size:.72rem;color:var(--gold);background:transparent;
+    border:1px solid var(--gold-soft);border-radius:999px;padding:.42rem 1.15rem;cursor:pointer;
+    transition:background .15s,color .15s;
+  }
+  .more-btn:hover,.more-btn:focus-visible{background:var(--gold-soft);color:var(--green-panel);outline:none}
   .chart-note{
     margin-top:1rem;text-align:center;font-style:italic;font-size:.8rem;opacity:.6;
   }
@@ -221,9 +235,10 @@
 
 <section class="chart-wrap">
   <h2 class="section-h">Who&rsquo;s Winning the Sweepstake?</h2>
-  <div class="chart-sub"><span id="chartLegend"><span style="color:var(--gold)">Gold bar</span> &mdash; combined chance of holding the champion. <span style="color:#F2EAD3">Cream bar</span> &mdash; payout if the tournament follows today&rsquo;s most likely script (1st &pound;100 &middot; 2nd &pound;50 &middot; 3rd &pound;25).<br></span>
+  <div class="chart-sub"><span id="chartLegend">The <span style="color:var(--gold)">gold bar</span> is each person&rsquo;s combined chance of holding the champion. <span style="white-space:nowrap">&#127942;&nbsp;&pound;100</span> / <span style="white-space:nowrap">&#129352;&nbsp;&pound;50</span> / <span style="white-space:nowrap">&#129353;&nbsp;&pound;25</span> mark whoever holds the team that wins the final, loses it, or wins the third-place playoff in today&rsquo;s most likely result.<br></span>
   <span class="src" id="oddsSrc">Sports4cast model &middot; updated 12 Jun 2026 &middot; 10,000 sims</span></div>
-  <div class="chart-rows" id="chartRows"></div>
+  <div class="chart-rows collapsed" id="chartRows"></div>
+  <div class="chart-more" id="chartMore"></div>
   <div class="chart-note">Teams the model rates below 0.1% count as zero &mdash; sorry, Iraq. Refreshed every morning from the daily 10,000-run simulation; the &pound;5 wooden spoon joins once the group stage settles it.</div>
 </section>
 
@@ -441,12 +456,30 @@
     "Ghana":"gh","South Africa":"za","Cape Verde":"cv","DR Congo":"cd","Panama":"pa",
     "Curacao":"cw","Haiti":"ht","New Zealand":"nz"};
 
-  // Two bars per person. Bar A: combined champion chance. Bar B: payout if
-  // the tournament follows the sim's single most-likely playthrough (modal =
-  // {champion, runnerUp, third} as flag codes; the same path the wall chart's
-  // autosim pre-fills). 1st £100 · 2nd £50 · 3rd £25; wooden spoon (£5) is
-  // hard-coded once the group stage actually finishes — not simulated.
+  // One gold bar per person = combined chance of holding the champion. The
+  // medal + cash (1st £100 · 2nd £50 · 3rd £25) sit beside the name and mark
+  // the holders of the sim's single most-likely podium (modal = {champion,
+  // runnerUp, third} as flag codes — the same path the wall chart's autosim
+  // pre-fills). The payout still drives the sort (prize-winners to the top),
+  // it's just no longer drawn as its own bar. Wooden spoon (£5) is hard-coded
+  // once the group stage finishes — not simulated.
   const PRIZES = [["champion",100,"\u{1F3C6}"],["runnerUp",50,"\u{1F948}"],["third",25,"\u{1F949}"]];
+  const CHART_LIMIT = 20;          // rows shown before "Show all"
+  let chartExpanded = false;       // persists across re-renders (snapshot → daily sim)
+
+  function applyChartCollapse(total){
+    const rows = document.getElementById("chartRows");
+    rows.classList.toggle("collapsed", !chartExpanded);
+    const more = document.getElementById("chartMore");
+    if(!more) return;
+    if(total <= CHART_LIMIT){ more.innerHTML = ""; return; }
+    more.innerHTML = `<button type="button" class="more-btn">${
+      chartExpanded ? "Show top 20 ▴" : `Show all ${total} ▾`}</button>`;
+    more.querySelector("button").addEventListener("click", ()=>{
+      chartExpanded = !chartExpanded;
+      applyChartCollapse(total);
+    });
+  }
 
   function renderOddsChart(winpc, srcText, unmatched, modal){
     const peopleMap = {};
@@ -464,7 +497,7 @@
         }
       });
       return {name, teams:p.teams, sum:+p.sum.toFixed(1), payout, medals, bestPos};
-    }).sort((a,b)=> a.bestPos-b.bestPos || b.sum-a.sum);
+    }).sort((a,b)=> a.bestPos-b.bestPos || b.sum-a.sum);  // prize-winners first, then by bar
 
     const fmtPct = v => v===0 ? "<0.1%" : v.toFixed(1) + "%";
     const maxSum = Math.max(...standings.map(r=>r.sum)) || 1;
@@ -475,27 +508,20 @@
       const row = document.createElement("div");
       row.className = "crow" + (r.sum===0 ? " zero" : "");
       const flags = r.teams.map(c=>`<img src="${flagData(c)}" alt="${TEAM_NAME[c]}" title="${TEAM_NAME[c]}">`).join("");
-      const barB = modal ? `
-        <div class="cbar b" title="Payout if the tournament follows today's most likely script">
-          <div class="cfill"></div>${r.payout ? `<span class="cval">£${r.payout}</span>` : ""}
-        </div>` : "";
+      const prize = r.payout ? `<span class="cprize">£${r.payout}</span>` : "";
       row.innerHTML = `
         <div class="cmedal">${r.medals}</div>
-        <div class="cname"><div class="nm" title="${r.name.replace(/&amp;/g,"&")}">${r.name}</div><div class="cflags">${flags}</div></div>
-        <div class="cbars">
-          <div class="cbar a" title="Combined chance of holding the champion">
-            <div class="cfill"></div><span class="cval">${fmtPct(r.sum)}</span>
-          </div>${barB}
-        </div>`;
+        <div class="cname">
+          <div class="nm-row"><span class="nm" title="${r.name.replace(/&amp;/g,"&")}">${r.name}</span>${prize}</div>
+          <div class="cflags">${flags}</div>
+        </div>
+        <div class="cbar"><div class="cfill"></div><span class="cval">${fmtPct(r.sum)}</span></div>`;
       chartRows.appendChild(row);
       const wA = Math.max(r.sum/maxSum*100, 1.2);
-      const wB = r.payout;   // £100 fills the track
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{
-        row.querySelector(".cbar.a .cfill").style.width = wA + "%";
-        const fb = row.querySelector(".cbar.b .cfill");
-        if(fb) fb.style.width = wB + "%";
-      }));
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{ row.querySelector(".cfill").style.width = wA + "%"; }));
     });
+
+    applyChartCollapse(standings.length);
 
     const legendEl = document.getElementById("chartLegend");
     if(legendEl) legendEl.style.display = modal ? "" : "none";
