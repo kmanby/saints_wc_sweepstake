@@ -112,6 +112,14 @@
     margin-top:1rem;text-align:center;font-style:italic;font-size:.8rem;opacity:.6;
   }
 
+  /* ---------- wall chart embed ---------- */
+  .wallchart-sec{width:96vw;max-width:1180px;margin:0 auto 2.2rem;text-align:center}
+  #wallchartFrame{
+    width:100%;min-height:1100px;border:2px solid var(--gold-soft);border-radius:10px;
+    background:var(--green-panel);
+    box-shadow:inset 0 0 40px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.45);
+  }
+
   /* ---------- 48 nations grid ---------- */
   .nations{max-width:920px;width:94vw;margin:0 auto 2.6rem;text-align:center}
   .nations h2{
@@ -214,6 +222,12 @@
   <span class="src">Sports4cast model &middot; updated 12 Jun 2026 &middot; 10,000 sims</span></div>
   <div class="chart-rows" id="chartRows"></div>
   <div class="chart-note">Teams the model rates below 0.1% count as zero &mdash; sorry, Iraq. Live daily odds coming soon.</div>
+</section>
+
+<section class="wallchart-sec">
+  <h2 class="section-h">The Wall Chart</h2>
+  <div class="chart-sub">Group tables and the full knockout bracket, pre-filled with the model&rsquo;s most likely path &mdash; click any probability to play out your own scenario.</div>
+  <iframe id="wallchartFrame" src="wallchart.html" title="Saints CC World Cup wall chart" loading="lazy"></iframe>
 </section>
 
 <section class="nations">
@@ -347,7 +361,7 @@
   const flagUrlSmall = flagData;
   const flagUrlBig = flagData;
 
-  const OWNERS = {"ca":"Jamie Briant 1","es":"Jamie Briant 2","mx":"Benjy Briant 1","br":"Flo Briant 1","au":"Jaffa (the dog) 1","gh":"Ed Pragnell 1","ec":"Ed Pragnell 2","pa":"Steve Vaughan 1","pt":"Steve Vaughan 2","us":"Rael Miller 1","gb-sct":"Ed Nangle 1","tr":"Ed Nangle 2","cv":"Jack Connell 1","kr":"Jack Connell 2","cw":"Jonny Singh 1","se":"Alex Baker 1","sa":"James Crisp 1","qa":"Ben Hanson 1","de":"Tom Hadden 1","sn":"Tom Hadden 2","dz":"Mike Cattel 1","jo":"Carl Pullensen 1","py":"Carl Pullensen 2","iq":"Ed Marsh 1","hr":"Jack Beeck 1","ht":"Jack Beeck 2","nz":"Dan Formosa 1","uy":"Dan Formosa 2","za":"Charles Hall 1","gb-eng":"Callum Booker 1","no":"Nick Roberts 1","ci":"Dan Bisson 1","tn":"Jonny Ward Manning 1","uz":"Jonny Ward Manning 2","ar":"Jonny Ward Manning 3","ma":"Jonny Ward Manning 4","fr":"David Gregory 1","ir":"Corran McCulloch 1","cd":"Karam Hirji 1","nl":"Henry Waite 1","be":"Chris Sykes 1","ch":"Graeme Acheson 1","at":"Kit MM 1","ba":"Kit MM 2","eg":"Kit MM 3","jp":"Kit MM 4","co":"Charlotte Hilton 1","cz":"Guy &amp; Al MM 1"};
+  const OWNERS = {"ca":"Jamie Briant 1","es":"Jamie Briant 2","mx":"Benjy Briant 1","br":"Flo Briant 1","au":"Jaffa (the dog) 1","gh":"Ed Pragnell 1","ec":"Ed Pragnell 2","pa":"Steve Vaughan 1","pt":"Steve Vaughan 2","us":"Rael Miller 1","gb-sct":"Ed Nangle 1","tr":"Ed Nangle 2","cv":"Jack Connell 1","kr":"Jack Connell 2","cw":"Jonny Singh 1","se":"Alex Baker 1","sa":"James Crisp 1","qa":"Ben Hanson 1","de":"Tom Hadden 1","sn":"Tom Hadden 2","dz":"Mike Cattel 1","jo":"Carl Pullensen 1","py":"Carl Pullensen 2","iq":"Ed Marsh 1","hr":"Jack Beeck 1","ht":"Jack Beeck 2","nz":"Dan Formosa 1","uy":"Dan Formosa 2","za":"Charles Hall 1","gb-eng":"Callum Booker 1","no":"Nic Roberts 1","ci":"Dan Bisson 1","tn":"Jonny Ward Manning 1","uz":"Jonny Ward Manning 2","ar":"Jonny Ward Manning 3","ma":"Jonny Ward Manning 4","fr":"David Gregory 1","ir":"Corran McCulloch 1","cd":"Karam Hirji 1","nl":"Henry Waite 1","be":"Chris Sykes 1","ch":"Graeme Acheson 1","at":"Kit MM 1","ba":"Kit MM 2","eg":"Kit MM 3","jp":"Kit MM 4","co":"Charlotte Hilton 1","cz":"Guy &amp; Al MM 1"};
 
   // grid — flag image in the box, full name below, click for fun fact
   const grid = document.getElementById("flagGrid");
@@ -430,6 +444,14 @@
     chartRows.appendChild(row);
     const w = Math.max(r.sum/maxSum*100, 1.2);
     requestAnimationFrame(()=>requestAnimationFrame(()=>{ row.querySelector(".cfill").style.width = w + "%"; }));
+  });
+
+  // wall chart iframe auto-height (the widget posts its height)
+  window.addEventListener("message", e=>{
+    if(e.data && e.data.type === "s4c-height" && e.data.id === "wc2026"){
+      const f = document.getElementById("wallchartFrame");
+      if(f) f.style.height = (e.data.height + 24) + "px";
+    }
   });
 </script>
 

@@ -187,8 +187,8 @@
       "team": "England"
     },
     {
-      "ticket": "Nick Roberts 1",
-      "person": "Nick Roberts",
+      "ticket": "Nic Roberts 1",
+      "person": "Nic Roberts",
       "teamCode": "no",
       "team": "Norway"
     },
@@ -522,7 +522,7 @@
       ]
     },
     {
-      "person": "Nick Roberts",
+      "person": "Nic Roberts",
       "teams": [
         {
           "teamCode": "no",
