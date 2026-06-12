@@ -1,0 +1,657 @@
+{
+  "meta": {
+    "competition": "FIFA World Cup 2026",
+    "drawDate": "2026-06-11T11:00:00Z",
+    "pot": "£180",
+    "rule": "Sweepstake winner = holder of the team that wins the World Cup"
+  },
+  "tickets": [
+    {
+      "ticket": "Jamie Briant 1",
+      "person": "Jamie Briant",
+      "teamCode": "ca",
+      "team": "Canada"
+    },
+    {
+      "ticket": "Jamie Briant 2",
+      "person": "Jamie Briant",
+      "teamCode": "es",
+      "team": "Spain"
+    },
+    {
+      "ticket": "Benjy Briant 1",
+      "person": "Benjy Briant",
+      "teamCode": "mx",
+      "team": "Mexico"
+    },
+    {
+      "ticket": "Flo Briant 1",
+      "person": "Flo Briant",
+      "teamCode": "br",
+      "team": "Brazil"
+    },
+    {
+      "ticket": "Jaffa (the dog) 1",
+      "person": "Jaffa (the dog)",
+      "teamCode": "au",
+      "team": "Australia"
+    },
+    {
+      "ticket": "Ed Pragnell 1",
+      "person": "Ed Pragnell",
+      "teamCode": "gh",
+      "team": "Ghana"
+    },
+    {
+      "ticket": "Ed Pragnell 2",
+      "person": "Ed Pragnell",
+      "teamCode": "ec",
+      "team": "Ecuador"
+    },
+    {
+      "ticket": "Steve Vaughan 1",
+      "person": "Steve Vaughan",
+      "teamCode": "pa",
+      "team": "Panama"
+    },
+    {
+      "ticket": "Steve Vaughan 2",
+      "person": "Steve Vaughan",
+      "teamCode": "pt",
+      "team": "Portugal"
+    },
+    {
+      "ticket": "Rael Miller 1",
+      "person": "Rael Miller",
+      "teamCode": "us",
+      "team": "USA"
+    },
+    {
+      "ticket": "Ed Nangle 1",
+      "person": "Ed Nangle",
+      "teamCode": "gb-sct",
+      "team": "Scotland"
+    },
+    {
+      "ticket": "Ed Nangle 2",
+      "person": "Ed Nangle",
+      "teamCode": "tr",
+      "team": "Türkiye"
+    },
+    {
+      "ticket": "Jack Connell 1",
+      "person": "Jack Connell",
+      "teamCode": "cv",
+      "team": "Cape Verde"
+    },
+    {
+      "ticket": "Jack Connell 2",
+      "person": "Jack Connell",
+      "teamCode": "kr",
+      "team": "South Korea"
+    },
+    {
+      "ticket": "Jonny Singh 1",
+      "person": "Jonny Singh",
+      "teamCode": "cw",
+      "team": "Curaçao"
+    },
+    {
+      "ticket": "Alex Baker 1",
+      "person": "Alex Baker",
+      "teamCode": "se",
+      "team": "Sweden"
+    },
+    {
+      "ticket": "James Crisp 1",
+      "person": "James Crisp",
+      "teamCode": "sa",
+      "team": "Saudi Arabia"
+    },
+    {
+      "ticket": "Ben Hanson 1",
+      "person": "Ben Hanson",
+      "teamCode": "qa",
+      "team": "Qatar"
+    },
+    {
+      "ticket": "Tom Hadden 1",
+      "person": "Tom Hadden",
+      "teamCode": "de",
+      "team": "Germany"
+    },
+    {
+      "ticket": "Tom Hadden 2",
+      "person": "Tom Hadden",
+      "teamCode": "sn",
+      "team": "Senegal"
+    },
+    {
+      "ticket": "Mike Cattel 1",
+      "person": "Mike Cattel",
+      "teamCode": "dz",
+      "team": "Algeria"
+    },
+    {
+      "ticket": "Carl Pullensen 1",
+      "person": "Carl Pullensen",
+      "teamCode": "jo",
+      "team": "Jordan"
+    },
+    {
+      "ticket": "Carl Pullensen 2",
+      "person": "Carl Pullensen",
+      "teamCode": "py",
+      "team": "Paraguay"
+    },
+    {
+      "ticket": "Ed Marsh 1",
+      "person": "Ed Marsh",
+      "teamCode": "iq",
+      "team": "Iraq"
+    },
+    {
+      "ticket": "Jack Beeck 1",
+      "person": "Jack Beeck",
+      "teamCode": "hr",
+      "team": "Croatia"
+    },
+    {
+      "ticket": "Jack Beeck 2",
+      "person": "Jack Beeck",
+      "teamCode": "ht",
+      "team": "Haiti"
+    },
+    {
+      "ticket": "Dan Formosa 1",
+      "person": "Dan Formosa",
+      "teamCode": "nz",
+      "team": "New Zealand"
+    },
+    {
+      "ticket": "Dan Formosa 2",
+      "person": "Dan Formosa",
+      "teamCode": "uy",
+      "team": "Uruguay"
+    },
+    {
+      "ticket": "Charles Hall 1",
+      "person": "Charles Hall",
+      "teamCode": "za",
+      "team": "South Africa"
+    },
+    {
+      "ticket": "Callum Booker 1",
+      "person": "Callum Booker",
+      "teamCode": "gb-eng",
+      "team": "England"
+    },
+    {
+      "ticket": "Nick Roberts 1",
+      "person": "Nick Roberts",
+      "teamCode": "no",
+      "team": "Norway"
+    },
+    {
+      "ticket": "Dan Bisson 1",
+      "person": "Dan Bisson",
+      "teamCode": "ci",
+      "team": "Ivory Coast"
+    },
+    {
+      "ticket": "Jonny Ward Manning 1",
+      "person": "Jonny Ward Manning",
+      "teamCode": "tn",
+      "team": "Tunisia"
+    },
+    {
+      "ticket": "Jonny Ward Manning 2",
+      "person": "Jonny Ward Manning",
+      "teamCode": "uz",
+      "team": "Uzbekistan"
+    },
+    {
+      "ticket": "Jonny Ward Manning 3",
+      "person": "Jonny Ward Manning",
+      "teamCode": "ar",
+      "team": "Argentina"
+    },
+    {
+      "ticket": "Jonny Ward Manning 4",
+      "person": "Jonny Ward Manning",
+      "teamCode": "ma",
+      "team": "Morocco"
+    },
+    {
+      "ticket": "David Gregory 1",
+      "person": "David Gregory",
+      "teamCode": "fr",
+      "team": "France"
+    },
+    {
+      "ticket": "Corran McCulloch 1",
+      "person": "Corran McCulloch",
+      "teamCode": "ir",
+      "team": "Iran"
+    },
+    {
+      "ticket": "Karam Hirji 1",
+      "person": "Karam Hirji",
+      "teamCode": "cd",
+      "team": "DR Congo"
+    },
+    {
+      "ticket": "Henry Waite 1",
+      "person": "Henry Waite",
+      "teamCode": "nl",
+      "team": "Netherlands"
+    },
+    {
+      "ticket": "Chris Sykes 1",
+      "person": "Chris Sykes",
+      "teamCode": "be",
+      "team": "Belgium"
+    },
+    {
+      "ticket": "Graeme Acheson 1",
+      "person": "Graeme Acheson",
+      "teamCode": "ch",
+      "team": "Switzerland"
+    },
+    {
+      "ticket": "Kit MM 1",
+      "person": "Kit MM",
+      "teamCode": "at",
+      "team": "Austria"
+    },
+    {
+      "ticket": "Kit MM 2",
+      "person": "Kit MM",
+      "teamCode": "ba",
+      "team": "Bosnia & Herz."
+    },
+    {
+      "ticket": "Kit MM 3",
+      "person": "Kit MM",
+      "teamCode": "eg",
+      "team": "Egypt"
+    },
+    {
+      "ticket": "Kit MM 4",
+      "person": "Kit MM",
+      "teamCode": "jp",
+      "team": "Japan"
+    },
+    {
+      "ticket": "Charlotte Hilton 1",
+      "person": "Charlotte Hilton",
+      "teamCode": "co",
+      "team": "Colombia"
+    },
+    {
+      "ticket": "Guy & Al MM 1",
+      "person": "Guy & Al MM",
+      "teamCode": "cz",
+      "team": "Czechia"
+    }
+  ],
+  "people": [
+    {
+      "person": "Jamie Briant",
+      "teams": [
+        {
+          "teamCode": "ca",
+          "team": "Canada"
+        },
+        {
+          "teamCode": "es",
+          "team": "Spain"
+        }
+      ]
+    },
+    {
+      "person": "Benjy Briant",
+      "teams": [
+        {
+          "teamCode": "mx",
+          "team": "Mexico"
+        }
+      ]
+    },
+    {
+      "person": "Flo Briant",
+      "teams": [
+        {
+          "teamCode": "br",
+          "team": "Brazil"
+        }
+      ]
+    },
+    {
+      "person": "Jaffa (the dog)",
+      "teams": [
+        {
+          "teamCode": "au",
+          "team": "Australia"
+        }
+      ]
+    },
+    {
+      "person": "Ed Pragnell",
+      "teams": [
+        {
+          "teamCode": "gh",
+          "team": "Ghana"
+        },
+        {
+          "teamCode": "ec",
+          "team": "Ecuador"
+        }
+      ]
+    },
+    {
+      "person": "Steve Vaughan",
+      "teams": [
+        {
+          "teamCode": "pa",
+          "team": "Panama"
+        },
+        {
+          "teamCode": "pt",
+          "team": "Portugal"
+        }
+      ]
+    },
+    {
+      "person": "Rael Miller",
+      "teams": [
+        {
+          "teamCode": "us",
+          "team": "USA"
+        }
+      ]
+    },
+    {
+      "person": "Ed Nangle",
+      "teams": [
+        {
+          "teamCode": "gb-sct",
+          "team": "Scotland"
+        },
+        {
+          "teamCode": "tr",
+          "team": "Türkiye"
+        }
+      ]
+    },
+    {
+      "person": "Jack Connell",
+      "teams": [
+        {
+          "teamCode": "cv",
+          "team": "Cape Verde"
+        },
+        {
+          "teamCode": "kr",
+          "team": "South Korea"
+        }
+      ]
+    },
+    {
+      "person": "Jonny Singh",
+      "teams": [
+        {
+          "teamCode": "cw",
+          "team": "Curaçao"
+        }
+      ]
+    },
+    {
+      "person": "Alex Baker",
+      "teams": [
+        {
+          "teamCode": "se",
+          "team": "Sweden"
+        }
+      ]
+    },
+    {
+      "person": "James Crisp",
+      "teams": [
+        {
+          "teamCode": "sa",
+          "team": "Saudi Arabia"
+        }
+      ]
+    },
+    {
+      "person": "Ben Hanson",
+      "teams": [
+        {
+          "teamCode": "qa",
+          "team": "Qatar"
+        }
+      ]
+    },
+    {
+      "person": "Tom Hadden",
+      "teams": [
+        {
+          "teamCode": "de",
+          "team": "Germany"
+        },
+        {
+          "teamCode": "sn",
+          "team": "Senegal"
+        }
+      ]
+    },
+    {
+      "person": "Mike Cattel",
+      "teams": [
+        {
+          "teamCode": "dz",
+          "team": "Algeria"
+        }
+      ]
+    },
+    {
+      "person": "Carl Pullensen",
+      "teams": [
+        {
+          "teamCode": "jo",
+          "team": "Jordan"
+        },
+        {
+          "teamCode": "py",
+          "team": "Paraguay"
+        }
+      ]
+    },
+    {
+      "person": "Ed Marsh",
+      "teams": [
+        {
+          "teamCode": "iq",
+          "team": "Iraq"
+        }
+      ]
+    },
+    {
+      "person": "Jack Beeck",
+      "teams": [
+        {
+          "teamCode": "hr",
+          "team": "Croatia"
+        },
+        {
+          "teamCode": "ht",
+          "team": "Haiti"
+        }
+      ]
+    },
+    {
+      "person": "Dan Formosa",
+      "teams": [
+        {
+          "teamCode": "nz",
+          "team": "New Zealand"
+        },
+        {
+          "teamCode": "uy",
+          "team": "Uruguay"
+        }
+      ]
+    },
+    {
+      "person": "Charles Hall",
+      "teams": [
+        {
+          "teamCode": "za",
+          "team": "South Africa"
+        }
+      ]
+    },
+    {
+      "person": "Callum Booker",
+      "teams": [
+        {
+          "teamCode": "gb-eng",
+          "team": "England"
+        }
+      ]
+    },
+    {
+      "person": "Nick Roberts",
+      "teams": [
+        {
+          "teamCode": "no",
+          "team": "Norway"
+        }
+      ]
+    },
+    {
+      "person": "Dan Bisson",
+      "teams": [
+        {
+          "teamCode": "ci",
+          "team": "Ivory Coast"
+        }
+      ]
+    },
+    {
+      "person": "Jonny Ward Manning",
+      "teams": [
+        {
+          "teamCode": "tn",
+          "team": "Tunisia"
+        },
+        {
+          "teamCode": "uz",
+          "team": "Uzbekistan"
+        },
+        {
+          "teamCode": "ar",
+          "team": "Argentina"
+        },
+        {
+          "teamCode": "ma",
+          "team": "Morocco"
+        }
+      ]
+    },
+    {
+      "person": "David Gregory",
+      "teams": [
+        {
+          "teamCode": "fr",
+          "team": "France"
+        }
+      ]
+    },
+    {
+      "person": "Corran McCulloch",
+      "teams": [
+        {
+          "teamCode": "ir",
+          "team": "Iran"
+        }
+      ]
+    },
+    {
+      "person": "Karam Hirji",
+      "teams": [
+        {
+          "teamCode": "cd",
+          "team": "DR Congo"
+        }
+      ]
+    },
+    {
+      "person": "Henry Waite",
+      "teams": [
+        {
+          "teamCode": "nl",
+          "team": "Netherlands"
+        }
+      ]
+    },
+    {
+      "person": "Chris Sykes",
+      "teams": [
+        {
+          "teamCode": "be",
+          "team": "Belgium"
+        }
+      ]
+    },
+    {
+      "person": "Graeme Acheson",
+      "teams": [
+        {
+          "teamCode": "ch",
+          "team": "Switzerland"
+        }
+      ]
+    },
+    {
+      "person": "Kit MM",
+      "teams": [
+        {
+          "teamCode": "at",
+          "team": "Austria"
+        },
+        {
+          "teamCode": "ba",
+          "team": "Bosnia & Herz."
+        },
+        {
+          "teamCode": "eg",
+          "team": "Egypt"
+        },
+        {
+          "teamCode": "jp",
+          "team": "Japan"
+        }
+      ]
+    },
+    {
+      "person": "Charlotte Hilton",
+      "teams": [
+        {
+          "teamCode": "co",
+          "team": "Colombia"
+        }
+      ]
+    },
+    {
+      "person": "Guy & Al MM",
+      "teams": [
+        {
+          "teamCode": "cz",
+          "team": "Czechia"
+        }
+      ]
+    }
+  ]
+}
