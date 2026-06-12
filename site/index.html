@@ -82,12 +82,12 @@
   .chart-sub{text-align:center;font-style:italic;font-size:.92rem;opacity:.85;margin-bottom:1.2rem;line-height:1.5}
   .chart-sub .src{font-size:.75rem;opacity:.75;font-style:normal;
     font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.15em}
-  .chart-rows{display:flex;flex-direction:column;gap:.45rem}
+  .chart-rows{display:flex;flex-direction:column;gap:.55rem}
   .crow{
-    display:grid;grid-template-columns:1.7rem minmax(118px, 32%) 1fr;
+    display:grid;grid-template-columns:2.2rem minmax(118px, 32%) 1fr;
     gap:.55rem;align-items:center;
   }
-  .cmedal{font-size:1.05rem;text-align:center;line-height:1}
+  .cmedal{font-size:.95rem;text-align:center;line-height:1.1;letter-spacing:-.1em}
   .cname{min-width:0}
   .cname .nm{
     font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:.84rem;
@@ -96,13 +96,16 @@
   }
   .cname .cflags{display:flex;gap:.22rem;margin-top:.18rem}
   .cname .cflags img{width:17px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.5)}
-  .cbar{position:relative;height:1.5rem;background:#08160F;border:1px solid rgba(217,169,60,.28);border-radius:4px;overflow:hidden}
+  .cbars{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .cbar{position:relative;height:1.3rem;background:#08160F;border:1px solid rgba(217,169,60,.28);border-radius:4px;overflow:hidden}
+  .cbar.b{height:.95rem;border-color:rgba(242,234,211,.16)}
   .cfill{
     position:absolute;inset:0 auto 0 0;border-radius:3px;
     background:linear-gradient(90deg, var(--gold-soft), var(--gold));
     width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1);
   }
-  .crow.zero .cfill{background:rgba(242,234,211,.22)}
+  .cbar.b .cfill{background:linear-gradient(90deg, #8d8068, #F2EAD3)}
+  .crow.zero .cbar.a .cfill{background:rgba(242,234,211,.22)}
   .cval{
     position:absolute;right:.5rem;top:50%;transform:translateY(-50%);
     font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:.8rem;
@@ -218,10 +221,10 @@
 
 <section class="chart-wrap">
   <h2 class="section-h">Who&rsquo;s Winning the Sweepstake?</h2>
-  <div class="chart-sub">Each person&rsquo;s combined chance of holding the World Cup winner<br>
+  <div class="chart-sub"><span id="chartLegend"><span style="color:var(--gold)">Gold bar</span> &mdash; combined chance of holding the champion. <span style="color:#F2EAD3">Cream bar</span> &mdash; payout if the tournament follows today&rsquo;s most likely script (1st &pound;100 &middot; 2nd &pound;50 &middot; 3rd &pound;25).<br></span>
   <span class="src" id="oddsSrc">Sports4cast model &middot; updated 12 Jun 2026 &middot; 10,000 sims</span></div>
   <div class="chart-rows" id="chartRows"></div>
-  <div class="chart-note">Teams the model rates below 0.1% count as zero &mdash; sorry, Iraq. Live daily odds coming soon.</div>
+  <div class="chart-note">Teams the model rates below 0.1% count as zero &mdash; sorry, Iraq. Refreshed every morning from the daily 10,000-run simulation; the &pound;5 wooden spoon joins once the group stage settles it.</div>
 </section>
 
 <section class="wallchart-sec">
@@ -438,7 +441,14 @@
     "Ghana":"gh","South Africa":"za","Cape Verde":"cv","DR Congo":"cd","Panama":"pa",
     "Curacao":"cw","Haiti":"ht","New Zealand":"nz"};
 
-  function renderOddsChart(winpc, srcText, unmatched){
+  // Two bars per person. Bar A: combined champion chance. Bar B: payout if
+  // the tournament follows the sim's single most-likely playthrough (modal =
+  // {champion, runnerUp, third} as flag codes; the same path the wall chart's
+  // autosim pre-fills). 1st £100 · 2nd £50 · 3rd £25; wooden spoon (£5) is
+  // hard-coded once the group stage actually finishes — not simulated.
+  const PRIZES = [["champion",100,"\u{1F3C6}"],["runnerUp",50,"\u{1F948}"],["third",25,"\u{1F949}"]];
+
+  function renderOddsChart(winpc, srcText, unmatched, modal){
     const peopleMap = {};
     for(const [code, ticket] of Object.entries(OWNERS)){
       const person = ticket.replace(/\s+\d+$/,"");
@@ -446,14 +456,18 @@
       peopleMap[person].teams.push(code);
       peopleMap[person].sum += (winpc[code] ?? 0);
     }
-    const standings = Object.entries(peopleMap)
-      .map(([name,p])=>({name, teams:p.teams, sum:+p.sum.toFixed(1)}))
-      .sort((a,b)=>b.sum-a.sum);
+    const standings = Object.entries(peopleMap).map(([name,p])=>{
+      let payout = 0, medals = "", bestPos = PRIZES.length;
+      if(modal) PRIZES.forEach(([pos, amount, medal], i)=>{
+        if(p.teams.includes(modal[pos])){
+          payout += amount; medals += medal; bestPos = Math.min(bestPos, i);
+        }
+      });
+      return {name, teams:p.teams, sum:+p.sum.toFixed(1), payout, medals, bestPos};
+    }).sort((a,b)=> a.bestPos-b.bestPos || b.sum-a.sum);
 
-    const tiers = [...new Set(standings.map(r=>r.sum))];
-    const medalFor = v => v===tiers[0] ? "\u{1F3C6}" : v===tiers[1] ? "\u{1F948}" : v===tiers[2] ? "\u{1F949}" : "";
     const fmtPct = v => v===0 ? "<0.1%" : v.toFixed(1) + "%";
-    const maxSum = standings[0].sum || 1;
+    const maxSum = Math.max(...standings.map(r=>r.sum)) || 1;
 
     const chartRows = document.getElementById("chartRows");
     chartRows.innerHTML = "";
@@ -461,14 +475,30 @@
       const row = document.createElement("div");
       row.className = "crow" + (r.sum===0 ? " zero" : "");
       const flags = r.teams.map(c=>`<img src="${flagData(c)}" alt="${TEAM_NAME[c]}" title="${TEAM_NAME[c]}">`).join("");
+      const barB = modal ? `
+        <div class="cbar b" title="Payout if the tournament follows today's most likely script">
+          <div class="cfill"></div>${r.payout ? `<span class="cval">£${r.payout}</span>` : ""}
+        </div>` : "";
       row.innerHTML = `
-        <div class="cmedal">${medalFor(r.sum)}</div>
+        <div class="cmedal">${r.medals}</div>
         <div class="cname"><div class="nm" title="${r.name.replace(/&amp;/g,"&")}">${r.name}</div><div class="cflags">${flags}</div></div>
-        <div class="cbar"><div class="cfill"></div><span class="cval">${fmtPct(r.sum)}</span></div>`;
+        <div class="cbars">
+          <div class="cbar a" title="Combined chance of holding the champion">
+            <div class="cfill"></div><span class="cval">${fmtPct(r.sum)}</span>
+          </div>${barB}
+        </div>`;
       chartRows.appendChild(row);
-      const wdt = Math.max(r.sum/maxSum*100, 1.2);
-      requestAnimationFrame(()=>requestAnimationFrame(()=>{ row.querySelector(".cfill").style.width = wdt + "%"; }));
+      const wA = Math.max(r.sum/maxSum*100, 1.2);
+      const wB = r.payout;   // £100 fills the track
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        row.querySelector(".cbar.a .cfill").style.width = wA + "%";
+        const fb = row.querySelector(".cbar.b .cfill");
+        if(fb) fb.style.width = wB + "%";
+      }));
     });
+
+    const legendEl = document.getElementById("chartLegend");
+    if(legendEl) legendEl.style.display = modal ? "" : "none";
 
     const srcEl = document.getElementById("oddsSrc");
     if(srcEl && srcText){
@@ -492,8 +522,14 @@
         else unmatched.push(team);
       }
       liveOddsApplied = true;
+      // the sim's most likely playthrough, mapped to flag codes for Bar B
+      const modal = d.modal ? {
+        champion: NAME2CODE[d.modal.champion],
+        runnerUp: NAME2CODE[d.modal.runnerUp],
+        third:    NAME2CODE[d.modal.third],
+      } : null;
       const when = d.generated ? d.generated.slice(0,10) : "";
-      renderOddsChart(live, `Daily ${(d.sims||0).toLocaleString()}-sim Monte Carlo &middot; ${when}`, unmatched);
+      renderOddsChart(live, `Daily ${(d.sims||0).toLocaleString()}-sim Monte Carlo &middot; ${when}`, unmatched, modal);
     })
     .catch(()=>{});
 

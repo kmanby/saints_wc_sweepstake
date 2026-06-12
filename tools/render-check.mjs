@@ -52,17 +52,41 @@ async function loadPage(path) {
   return { dom, errors, doc: dom.window.document, win: dom.window };
 }
 
-async function checkIndex() {
+async function checkIndex({ sim, sweep }) {
   console.log("\nindex.html");
   const { dom, errors, doc, win } = await loadPage("/");
   check("no page JS errors", errors.length === 0, errors.slice(0, 3).join(" | "));
 
-  const rows = doc.querySelectorAll("#chartRows .crow");
+  const rows = [...doc.querySelectorAll("#chartRows .crow")];
   check("odds chart rendered (33 people)", rows.length === 33, `${rows.length} rows`);
 
   const src = doc.getElementById("oddsSrc")?.textContent || "";
   check("odds source is the daily sim", /Monte Carlo/.test(src), src.trim());
   check("no unmatched-team warning", !/unmatched/.test(src), src.trim());
+
+  // two-bar mode: every row has both bars; the modal podium holders (derived
+  // independently from daily-sim.json + sweepstake.json) lead with medals + £
+  check("every row has two bars", rows.every((r) => r.querySelector(".cbar.a") && r.querySelector(".cbar.b")));
+  const holderOf = (team) => sweep.tickets.find((t) => t.team === team)?.person;
+  const expected = [
+    [holderOf(sim.modal.champion), "🏆", "£100"],
+    [holderOf(sim.modal.runnerUp), "🥈", "£50"],
+    [holderOf(sim.modal.third), "🥉", "£25"],
+  ];
+  expected.forEach(([person, medal, amount], i) => {
+    const row = rows[i];
+    const ok = row.querySelector(".nm")?.textContent === person
+      && row.querySelector(".cmedal")?.textContent.includes(medal)
+      && row.querySelector(".cbar.b .cval")?.textContent === amount;
+    check(`row ${i + 1}: ${medal} ${amount} for ${person}`, ok,
+      `got ${row.querySelector(".nm")?.textContent} ${row.querySelector(".cmedal")?.textContent} ${row.querySelector(".cbar.b .cval")?.textContent || "no £"}`);
+  });
+  const paidRows = rows.filter((r) => r.querySelector(".cbar.b .cval"));
+  check("£ labels on exactly the podium rows", paidRows.length === new Set(expected.map((e) => e[0])).size,
+    `${paidRows.length}`);
+  const rest = rows.slice(3);
+  const sums = rest.map((r) => parseFloat(r.querySelector(".cbar.a .cval").textContent) || 0);
+  check("rest sorted by Bar A desc", sums.every((v, i) => i === 0 || sums[i - 1] >= v));
 
   const grid = doc.querySelectorAll("#flagGrid .nation");
   check("48 nation tiles", grid.length === 48, `${grid.length}`);
@@ -145,6 +169,16 @@ async function checkFacts() {
   const sim = await (await fetch(BASE + "/data/daily-sim.json")).json();
   const simMissing = Object.keys(sim.champion).filter((t) => !facts[t]);
   check("keys join daily-sim.json teams", simMissing.length === 0, simMissing.join(","));
+
+  for (const key of ["champion", "runnerUp", "third"]) {
+    const sum = Object.values(sim[key] || {}).reduce((s, v) => s + v, 0);
+    check(`${key}% sums to 100`, Math.abs(sum - 100) < 0.5, sum.toFixed(2));
+  }
+  const m = sim.modal || {};
+  check("modal podium is 3 distinct teams",
+    new Set([m.champion, m.runnerUp, m.third]).size === 3 && [m.champion, m.runnerUp, m.third].every((t) => sim.champion[t] !== undefined),
+    JSON.stringify(m));
+  return { sim, sweep };
 }
 
 async function checkDraw() {
@@ -160,8 +194,8 @@ if (!probe || !probe.ok) {
   process.exit(2);
 }
 
-await checkFacts();
-await checkIndex();
+const data = await checkFacts();
+await checkIndex(data);
 await checkWallchart();
 await checkDraw();
 
