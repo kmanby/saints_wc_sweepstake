@@ -15,6 +15,17 @@ Club sweepstake site for Saints CC (amateur cricket club). 48 tickets, 48 teams,
   - `data/sweepstake.json` — **source of truth for the draw result**: tickets,
     people (grouped), team names + flag codes. Build new features from this,
     not by scraping the HTML.
+  - `data/facts.json` — single copy of the 48 fun facts, keyed by SIM team
+    name ("Turkey", "Curacao"), each entry `{code, name, fact}` carrying the
+    flagcdn code + display name ("Türkiye", "Curaçao"). Both pages fetch it;
+    don't reintroduce inline copies.
+  - `wallchart.html` — interactive groups + bracket. People-first labels:
+    owner names label group rows, bracket cards and the champion box; the
+    country lives in a hover/tap "team card" (flag, country, holder, champion
+    % from daily-sim.json with the in-page Elo model as fallback, fun fact).
+    Tapping a FLAG pins the card; tapping the rest of a bracket row still
+    advances the team — keep that split, it's what preserves tap-to-advance
+    on touch.
 - `netlify/functions/sports4cast.mjs` — API proxy (see Security)
 - `netlify.toml` — publish dir + functions dir
 

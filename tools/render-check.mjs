@@ -54,7 +54,7 @@ async function loadPage(path) {
 
 async function checkIndex() {
   console.log("\nindex.html");
-  const { dom, errors, doc } = await loadPage("/");
+  const { dom, errors, doc, win } = await loadPage("/");
   check("no page JS errors", errors.length === 0, errors.slice(0, 3).join(" | "));
 
   const rows = doc.querySelectorAll("#chartRows .crow");
@@ -71,12 +71,20 @@ async function checkIndex() {
   check("wallchart iframe src", iframe?.getAttribute("src") === "wallchart.html",
     iframe?.getAttribute("src"));
 
+  // fun-fact modal pulls from the shared facts.json
+  doc.querySelector("#flagGrid .nation").dispatchEvent(new win.MouseEvent("click", { bubbles: true }));
+  const fact = doc.getElementById("cardFact")?.textContent || "";
+  check("modal fact loaded from facts.json", fact.length > 40 && !/unavailable/.test(fact),
+    fact.slice(0, 60) + "…");
+  const prob = doc.getElementById("cardProb")?.textContent || "";
+  check("modal probability hydrated", /Win probability: .+%/.test(prob), prob);
+
   dom.window.close();
 }
 
 async function checkWallchart() {
   console.log("\nwallchart.html");
-  const { dom, errors, doc } = await loadPage("/wallchart.html");
+  const { dom, errors, doc, win } = await loadPage("/wallchart.html");
   check("no page JS errors", errors.length === 0, errors.slice(0, 3).join(" | "));
 
   const groupCards = doc.querySelectorAll(".gc");
@@ -88,7 +96,55 @@ async function checkWallchart() {
   const champ = doc.getElementById("champBox")?.textContent?.trim() || "";
   check("champion box populated (autosim)", champ.length > 0 && !/TBD/.test(champ), champ);
 
+  // people-first labels: group rows + bracket rows carry owner names, not countries
+  const tnTexts = [...doc.querySelectorAll(".tn .tn-own")].map((e) => e.textContent);
+  check("group rows labelled by owner", tnTexts.length === 48 && tnTexts.includes("Benjy Briant"),
+    `${tnTexts.length} rows, sample: ${tnTexts[0]}`);
+  const mtTexts = [...doc.querySelectorAll(".mt-name")].map((e) => e.textContent.trim());
+  const countryLeak = mtTexts.filter((t) => /^(Spain|France|Brazil|Germany|England)$/.test(t));
+  check("bracket rows labelled by owner", mtTexts.length > 0 && countryLeak.length === 0,
+    countryLeak.length ? `country labels leaked: ${countryLeak.join(",")}` : `${mtTexts.length} rows`);
+  check("champion box labelled by owner", /Jamie Briant|wins the £100/.test(champ), champ);
+
+  // wait for the facts/daily-sim fetches to land before exercising the card
+  for (let i = 0; i < 20 && win.eval("Object.keys(FACTS).length") === 0; i++)
+    await new Promise((r) => setTimeout(r, 250));
+
+  // team card: tapping a bracket flag pins the card without advancing the team
+  const aRow = [...doc.querySelectorAll("[data-matchid] .mt")].find((r) => r.querySelector(".info-tap"));
+  const before = doc.getElementById("champBox").textContent;
+  aRow.querySelector(".info-tap").dispatchEvent(new win.MouseEvent("click", { bubbles: true }));
+  const card = doc.querySelector(".team-card");
+  check("flag tap pins team card", card?.classList.contains("on") && card?.classList.contains("pinned"));
+  const factTxt = card.querySelector(".tc-fact")?.textContent || "";
+  check("card shows country + holder + odds + fact",
+    /Held by/.test(card.textContent) && /Champion chance/.test(card.textContent) && factTxt.length > 40,
+    (card.textContent || "").slice(0, 110).replace(/\s+/g, " "));
+  check("flag tap did not advance bracket", doc.getElementById("champBox").textContent === before);
+
+  // tap-to-advance still works: click the final's losing row, champion flips
+  const finalCard = doc.querySelector('[data-matchid="final"]');
+  const loser = [...finalCard.querySelectorAll(".mt")].find((r) => r.classList.contains("lst"));
+  loser.dispatchEvent(new win.MouseEvent("click", { bubbles: true }));
+  const after = doc.getElementById("champBox").textContent;
+  check("row tap still advances (final flipped)", after !== before, `${before.trim()} -> ${after.trim()}`);
+
   dom.window.close();
+}
+
+async function checkFacts() {
+  console.log("\ndata/facts.json");
+  const facts = await (await fetch(BASE + "/data/facts.json")).json();
+  const sweep = await (await fetch(BASE + "/data/sweepstake.json")).json();
+  const entries = Object.values(facts);
+  check("48 fact entries", entries.length === 48, `${entries.length}`);
+  const sweepCodes = new Set(sweep.tickets.map((t) => t.teamCode));
+  const factCodes = new Set(entries.map((e) => e.code));
+  const missing = [...sweepCodes].filter((c) => !factCodes.has(c));
+  check("codes join sweepstake.json", missing.length === 0, missing.join(","));
+  const sim = await (await fetch(BASE + "/data/daily-sim.json")).json();
+  const simMissing = Object.keys(sim.champion).filter((t) => !facts[t]);
+  check("keys join daily-sim.json teams", simMissing.length === 0, simMissing.join(","));
 }
 
 async function checkDraw() {
@@ -104,6 +160,7 @@ if (!probe || !probe.ok) {
   process.exit(2);
 }
 
+await checkFacts();
 await checkIndex();
 await checkWallchart();
 await checkDraw();

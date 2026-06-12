@@ -1,0 +1,242 @@
+{
+ "USA": {
+  "code": "us",
+  "name": "USA",
+  "fact": "Hosting its first men's World Cup since 1994 — a tournament that still holds the record for the highest average attendance in history. This time it stages the final, at MetLife Stadium."
+ },
+ "Canada": {
+  "code": "ca",
+  "name": "Canada",
+  "fact": "Co-hosts at their third men's World Cup — still chasing a first-ever knockout-stage appearance."
+ },
+ "Mexico": {
+  "code": "mx",
+  "name": "Mexico",
+  "fact": "The only country to host three men's World Cups (1970, 1986 and 2026) — and it kicks the whole thing off against South Africa at the Estadio Azteca."
+ },
+ "Argentina": {
+  "code": "ar",
+  "name": "Argentina",
+  "fact": "Defending champions — won South American qualifying by nine points with a region-high 31 goals. Lionel Messi, now 38, is chasing back-to-back titles in surely his final World Cup."
+ },
+ "Brazil": {
+  "code": "br",
+  "name": "Brazil",
+  "fact": "Record five-time winners and the only nation to have played at every men's World Cup — all 23 of them."
+ },
+ "Uruguay": {
+  "code": "uy",
+  "name": "Uruguay",
+  "fact": "Winners of the very first World Cup, in 1930 — and with around 3.4 million people, still the smallest nation ever to lift the trophy."
+ },
+ "Colombia": {
+  "code": "co",
+  "name": "Colombia",
+  "fact": "Back after missing the 2022 tournament. Their best ever run (quarter-finals, 2014) came with James Rodríguez winning the Golden Boot — and scoring THAT volley."
+ },
+ "Ecuador": {
+  "code": "ec",
+  "name": "Ecuador",
+  "fact": "Conceded only five goals across 18 qualifiers — eight of which ended 0-0 — helped by making visitors play in Quito at 2,850 metres above sea level."
+ },
+ "Paraguay": {
+  "code": "py",
+  "name": "Paraguay",
+  "fact": "Returns after missing the last three World Cups — last seen in 2010, when they reached their first ever quarter-final."
+ },
+ "England": {
+  "code": "gb-eng",
+  "name": "England",
+  "fact": "Won all eight qualifiers, scoring 22 goals and conceding none. Sixty years since their only title in 1966 — and their first World Cup under a German manager, Thomas Tuchel."
+ },
+ "Scotland": {
+  "code": "gb-sct",
+  "name": "Scotland",
+  "fact": "A long-awaited return after 28 years away — and in eight previous World Cups they have never once escaped the group stage. Surely this time."
+ },
+ "France": {
+  "code": "fr",
+  "name": "France",
+  "fact": "The 2022 runners-up, and finalists at the last two World Cups — champions in 2018, beaten only on penalties in 2022."
+ },
+ "Spain": {
+  "code": "es",
+  "name": "Spain",
+  "fact": "The highest-ranked team in the tournament and reigning European champions — many bookies' favourites to add to their 2010 title."
+ },
+ "Portugal": {
+  "code": "pt",
+  "name": "Portugal",
+  "fact": "Carries Cristiano Ronaldo back into the tournament — at 41, the first man ever to play at six World Cups. Still never won it. Last chance saloon."
+ },
+ "Germany": {
+  "code": "de",
+  "name": "Germany",
+  "fact": "Four-time champions seeking redemption after group-stage exits in both 2018 and 2022 — a third would be unthinkable."
+ },
+ "Netherlands": {
+  "code": "nl",
+  "name": "Netherlands",
+  "fact": "The strongest footballing nation never to win it: three finals (1974, 1978, 2010), three defeats. No one has lost more."
+ },
+ "Belgium": {
+  "code": "be",
+  "name": "Belgium",
+  "fact": "Trying to stay relevant past its 'golden generation' era, which peaked at third place in 2018 — this is the new wave's first crack."
+ },
+ "Croatia": {
+  "code": "hr",
+  "name": "Croatia",
+  "fact": "A proven tournament overachiever with a population under 4 million — 2018 finalists, third in 2022, and Luka Modrić still going at 40."
+ },
+ "Switzerland": {
+  "code": "ch",
+  "name": "Switzerland",
+  "fact": "One of Europe's most reliable group-stage performers — won its qualifying group convincingly and is at a sixth consecutive World Cup, but has never gone past the quarter-finals."
+ },
+ "Austria": {
+  "code": "at",
+  "name": "Austria",
+  "fact": "Topped its group with 22 goals — ten of them in a single 10-0 win over San Marino. First World Cup since 1998; their best ever finish (third) came back in 1954."
+ },
+ "Norway": {
+  "code": "no",
+  "name": "Norway",
+  "fact": "First World Cup since 1998, with rare superstar power in Erling Haaland and Martin Ødegaard — eight wins from eight in qualifying, Haaland scoring 16, including an 11-1 win over Moldova. Yes, really."
+ },
+ "Bosnia-Herzegovina": {
+  "code": "ba",
+  "name": "Bosnia & Herz.",
+  "fact": "Only their second ever World Cup, returning for the first time since their 2014 debut — having knocked out four-time champions Italy on penalties in the playoffs."
+ },
+ "Sweden": {
+  "code": "se",
+  "name": "Sweden",
+  "fact": "Scraped in via the Nations League playoff path after finishing LAST in its qualifying group with two points — and now arrives with arguably Europe's scariest strike pair in Isak and Gyökeres."
+ },
+ "Turkey": {
+  "code": "tr",
+  "name": "Türkiye",
+  "fact": "Qualified through the European playoffs, beating Kosovo 1-0 in the final — their first World Cup since 2002, when they stunned everyone by finishing third."
+ },
+ "Czechia": {
+  "code": "cz",
+  "name": "Czechia",
+  "fact": "First World Cup since 2006 — past Ireland on penalties, then a 3-1 playoff final win over Denmark. As Czechoslovakia they twice reached the final, and twice lost."
+ },
+ "Japan": {
+  "code": "jp",
+  "name": "Japan",
+  "fact": "The first team in the world to qualify for 2026, back in March 2025 — and they beat both Germany and Spain at the last World Cup."
+ },
+ "South Korea": {
+  "code": "kr",
+  "name": "South Korea",
+  "fact": "Won its third-round qualifying group by six points — an eleventh consecutive World Cup, the longest active streak of any team outside Europe and South America."
+ },
+ "Iran": {
+  "code": "ir",
+  "name": "Iran",
+  "fact": "A fourth straight World Cup — but still seeking a first-ever knockout-stage appearance from six previous attempts."
+ },
+ "Australia": {
+  "code": "au",
+  "name": "Australia",
+  "fact": "Qualified automatically by finishing second to Japan in its group — a sixth straight World Cup for cricket's old enemy, so absolutely no Saints sympathy if they go out early."
+ },
+ "Jordan": {
+  "code": "jo",
+  "name": "Jordan",
+  "fact": "Making its World Cup debut after a breakthrough Asian qualifying campaign — they'd never even come close before."
+ },
+ "Uzbekistan": {
+  "code": "uz",
+  "name": "Uzbekistan",
+  "fact": "Tournament debutant and the first Central Asian nation ever to reach the men's World Cup — three decades in the making since independence."
+ },
+ "Qatar": {
+  "code": "qa",
+  "name": "Qatar",
+  "fact": "Their first World Cup qualified on merit — they previously appeared only as 2022 hosts, when they lost all three games."
+ },
+ "Saudi Arabia": {
+  "code": "sa",
+  "name": "Saudi Arabia",
+  "fact": "Responsible for arguably the greatest shock in World Cup history — beating eventual champions Argentina in their 2022 opener — and won its group in the fourth round of Asian qualifying."
+ },
+ "Iraq": {
+  "code": "iq",
+  "name": "Iraq",
+  "fact": "Returns for the first time since its sole previous appearance in 1986 — the 48th and final team to qualify, now managed by former Australia boss Graham Arnold."
+ },
+ "Morocco": {
+  "code": "ma",
+  "name": "Morocco",
+  "fact": "Building on its historic 2022 run as the first African team ever to reach a World Cup semi-final — the whole continent will be behind them again."
+ },
+ "Senegal": {
+  "code": "sn",
+  "name": "Senegal",
+  "fact": "Went unbeaten in qualifying, conceding just three goals — and famously announced themselves by beating holders France in their very first World Cup match in 2002."
+ },
+ "Egypt": {
+  "code": "eg",
+  "name": "Egypt",
+  "fact": "Carries Mohamed Salah as its headline star and conceded just two goals in qualifying — yet for all their record seven Africa Cup of Nations titles, Egypt have never won a World Cup knockout game."
+ },
+ "Algeria": {
+  "code": "dz",
+  "name": "Algeria",
+  "fact": "Won its African group by seven points, losing only once. In 1982 they beat West Germany — then got knocked out by the infamous 'Disgrace of Gijón' stitch-up."
+ },
+ "Tunisia": {
+  "code": "tn",
+  "name": "Tunisia",
+  "fact": "Won its qualifying group without conceding a single goal — fitting for the first African nation ever to win a World Cup match, against Mexico in 1978."
+ },
+ "Ivory Coast": {
+  "code": "ci",
+  "name": "Ivory Coast",
+  "fact": "Arrives as the reigning African champion — they won the 2023 AFCON on home soil after nearly going out in the group stage."
+ },
+ "Ghana": {
+  "code": "gh",
+  "name": "Ghana",
+  "fact": "Its best World Cup run remains the 2010 quarter-finals — one Luis Suárez handball on the line away from Africa's first ever semi-final. Never forgiven, never forgotten."
+ },
+ "South Africa": {
+  "code": "za",
+  "name": "South Africa",
+  "fact": "Faces Mexico in the tournament's opening match at the Azteca — their first World Cup since hosting in 2010."
+ },
+ "Cape Verde": {
+  "code": "cv",
+  "name": "Cape Verde",
+  "fact": "Making its World Cup debut — an island nation of barely half a million people, the smallest African country ever to qualify."
+ },
+ "DR Congo": {
+  "code": "cd",
+  "name": "DR Congo",
+  "fact": "Returns for the first time since playing as Zaire in 1974 — a 52-year wait ended by an extra-time playoff winner against Jamaica."
+ },
+ "Panama": {
+  "code": "pa",
+  "name": "Panama",
+  "fact": "Back after its World Cup debut in 2018, when they scored their first ever World Cup goal — and the whole country celebrated like they'd won the thing."
+ },
+ "Curacao": {
+  "code": "cw",
+  "name": "Curaçao",
+  "fact": "Debutant and the smallest nation by population ever at a World Cup — a Caribbean island of about 156,000 that went unbeaten through CONCACAF qualifying. Fewer residents than Walthamstow."
+ },
+ "Haiti": {
+  "code": "ht",
+  "name": "Haiti",
+  "fact": "An emotional return after winning its qualifying group ahead of Honduras and Costa Rica — their first World Cup since 1974, when they famously took the lead against mighty Italy."
+ },
+ "New Zealand": {
+  "code": "nz",
+  "name": "New Zealand",
+  "fact": "The first Oceania team ever to earn a direct, automatic qualifying berth. At their last World Cup in 2010 they drew all three games and went home as the only unbeaten team in the tournament. Peak Kiwi."
+ }
+}
