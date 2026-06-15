@@ -129,6 +129,35 @@
     margin-top:1rem;text-align:center;font-style:italic;font-size:.8rem;opacity:.6;
   }
 
+  /* ---------- fixtures / results rows ---------- */
+  .frows{display:flex;flex-direction:column}
+  .frow{
+    display:grid;grid-template-columns:3rem 1fr 2.6rem 1fr;gap:.5rem;
+    align-items:center;padding:.5rem 0;
+    border-bottom:1px solid rgba(217,169,60,.15);
+  }
+  .frow:last-child{border-bottom:none}
+  .ftime{
+    font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--gold);
+    text-align:center;font-size:.82rem;
+  }
+  .fteam{display:flex;align-items:center;gap:.4rem;min-width:0}
+  .fteam.fteam-b{flex-direction:row-reverse;text-align:right}
+  .fteam img{width:24px;border-radius:2px;box-shadow:0 1px 2px rgba(0,0,0,.5);flex:0 0 auto}
+  .fmeta{min-width:0;display:flex;flex-direction:column}
+  .fname{
+    font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:.82rem;
+    text-transform:uppercase;letter-spacing:.03em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  }
+  .fowner{font-size:.72rem;opacity:.75;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fcenter{
+    text-align:center;font-family:'Saira Condensed',sans-serif;font-weight:700;
+    color:var(--gold);font-size:.85rem;white-space:nowrap;
+  }
+  .fodds{font-size:.78rem;color:var(--gold);font-weight:700;flex:0 0 auto}
+  .fempty{text-align:center;opacity:.6;font-style:italic;padding:.6rem 0;font-size:.88rem}
+
   /* ---------- wall chart embed ---------- */
   .wallchart-sec{width:96vw;max-width:1180px;margin:0 auto 2.2rem;text-align:center}
   #wallchartFrame{
@@ -232,6 +261,18 @@
   <div class="sub">FIFA World Cup <span class="wc">Sweepstake Tracker</span></div>
   <div class="headline">48 Teams &middot; One Hat &middot; &pound;180 Pot</div>
 </header>
+
+<section class="chart-wrap fixtures-wrap">
+  <h2 class="section-h">Today&rsquo;s Fixtures</h2>
+  <div class="chart-sub">Kickoff times shown in UK time &middot; win% from the Elo model &middot; &ldquo;today&rdquo; = US Eastern date</div>
+  <div id="fixtureRows" class="frows"></div>
+</section>
+
+<section class="chart-wrap results-wrap">
+  <h2 class="section-h">Recent Results</h2>
+  <div class="chart-sub">Matches finished in the last 24 hours</div>
+  <div id="resultRows" class="frows"></div>
+</section>
 
 <section class="chart-wrap">
   <h2 class="section-h">Who&rsquo;s Winning the Sweepstake?</h2>
@@ -454,7 +495,9 @@
     "Uzbekistan":"uz","Qatar":"qa","Saudi Arabia":"sa","Iraq":"iq","Morocco":"ma",
     "Senegal":"sn","Egypt":"eg","Algeria":"dz","Tunisia":"tn","Ivory Coast":"ci",
     "Ghana":"gh","South Africa":"za","Cape Verde":"cv","DR Congo":"cd","Panama":"pa",
-    "Curacao":"cw","Haiti":"ht","New Zealand":"nz"};
+    "Curacao":"cw","Haiti":"ht","New Zealand":"nz",
+    // openfootball spells these differently from our other sources
+    "Czech Republic":"cz","Bosnia & Herzegovina":"ba","Curaçao":"cw"};
 
   // One gold bar per person = combined chance of holding the champion. The
   // medal + cash (1st £100 · 2nd £50 · 3rd £25) sit beside the name and mark
@@ -574,6 +617,100 @@
     }
     renderOddsChart(live, "Live &middot; derived from today&rsquo;s wall-chart model", unmatched);
   });
+
+  // ---------- today's fixtures + recent results (live, openfootball schedule) ----------
+  const COHOST_TEAMS = new Set(["USA","Mexico","Canada"]);
+  const COHOST_BOOST = 25;
+  let ELO_DATA = {};
+
+  // "13:00 UTC-6" -> the match's true UTC instant
+  function parseKickoffUTC(date, time){
+    const [hm, tz] = time.split(" ");
+    const offset = parseInt(tz.replace("UTC",""), 10) || 0;
+    const naive = new Date(`${date}T${hm}:00Z`);
+    return new Date(naive.getTime() - offset * 3600000);
+  }
+  const ukTime = d => d.toLocaleTimeString("en-GB", {timeZone:"Europe/London", hour:"2-digit", minute:"2-digit"});
+  const usEasternDate = d => d.toLocaleDateString("en-US", {timeZone:"America/New_York"});
+
+  function eloWinPct(teamA, teamB){
+    const ea = (ELO_DATA[teamA] ?? 1000) + (COHOST_TEAMS.has(teamA) ? COHOST_BOOST : 0);
+    const eb = (ELO_DATA[teamB] ?? 1000) + (COHOST_TEAMS.has(teamB) ? COHOST_BOOST : 0);
+    return 1 / (1 + Math.pow(10, (eb - ea) / 400));
+  }
+  // placeholders for unresolved knockout slots, e.g. "W101", "3A/B/C/D/F"
+  const isPlaceholder = team => /^[\dWL]/.test(team);
+
+  function teamCell(team, code, extra, side){
+    const flagImg = code != null ? `<img class="fflag" src="${flagData(code)}" alt="">` : "";
+    const name = code != null ? TEAM_NAME[code] : team;
+    const owner = code != null ? (OWNERS[code] || "").replace(/\s+\d+$/, "") : "";
+    const meta = `<div class="fmeta"><span class="fname">${name}</span>${owner ? `<span class="fowner">${owner}</span>` : ""}</div>`;
+    const extraEl = extra != null ? `<span class="fodds">${extra}</span>` : "";
+    return side === "b"
+      ? `<div class="fteam fteam-b">${extraEl}${meta}${flagImg}</div>`
+      : `<div class="fteam fteam-a">${flagImg}${meta}${extraEl}</div>`;
+  }
+
+  function renderMatches(containerId, matches, mode){
+    const el = document.getElementById(containerId);
+    if(!el) return;
+    if(!matches.length){
+      el.innerHTML = `<div class="fempty">${mode === "odds" ? "No matches today" : "No results in the last 24 hours"}</div>`;
+      return;
+    }
+    el.innerHTML = matches.map(m => {
+      const codeA = NAME2CODE[m.team1], codeB = NAME2CODE[m.team2];
+      const unmatched = (codeA == null && !isPlaceholder(m.team1)) || (codeB == null && !isPlaceholder(m.team2));
+      let left = null, right = null, center;
+      if(mode === "odds"){
+        if(codeA != null && codeB != null && ELO_DATA[m.team1] != null && ELO_DATA[m.team2] != null){
+          const pA = eloWinPct(m.team1, m.team2);
+          left = (pA * 100).toFixed(0) + "%";
+          right = ((1 - pA) * 100).toFixed(0) + "%";
+        }
+        center = "v";
+      } else {
+        center = m.score ? `${m.score.ft[0]}&ndash;${m.score.ft[1]}` : "TBD";
+      }
+      const warn = unmatched ? ` <span style="color:#E07A6A">(unmatched team)</span>` : "";
+      return `<div class="frow">
+        <div class="ftime">${ukTime(m._kickoff)}</div>
+        ${teamCell(m.team1, codeA, left, "a")}
+        <div class="fcenter">${center}${warn}</div>
+        ${teamCell(m.team2, codeB, right, "b")}
+      </div>`;
+    }).join("");
+  }
+
+  fetch("https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json")
+    .then(r => r.ok ? r.json() : null)
+    .then(d => {
+      if(!d || !d.matches) return;
+      const matches = d.matches.map(m => ({...m, _kickoff: parseKickoffUTC(m.date, m.time)}));
+      const now = new Date();
+      const today = usEasternDate(now);
+      const todays = matches
+        .filter(m => usEasternDate(m._kickoff) === today)
+        .sort((a, b) => a._kickoff - b._kickoff);
+      const recent = matches
+        .filter(m => m.score && now - m._kickoff >= 0 && now - m._kickoff <= 24 * 3600000)
+        .sort((a, b) => b._kickoff - a._kickoff);
+
+      return fetch("https://storage.googleapis.com/sports4cast-public/football/data/wc2026.json")
+        .then(r => r.ok ? r.json() : null)
+        .then(wc => {
+          if(wc && wc.elo_data) ELO_DATA = wc.elo_data;
+          renderMatches("fixtureRows", todays, "odds");
+          renderMatches("resultRows", recent, "score");
+        });
+    })
+    .catch(() => {
+      [".fixtures-wrap", ".results-wrap"].forEach(sel => {
+        const el = document.querySelector(sel);
+        if(el) el.style.display = "none";
+      });
+    });
 
   // wall chart iframe auto-height (the widget posts its height)
   window.addEventListener("message", e=>{
