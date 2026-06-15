@@ -621,7 +621,9 @@
   // ---------- today's fixtures + recent results (live, openfootball schedule) ----------
   const COHOST_TEAMS = new Set(["USA","Mexico","Canada"]);
   const COHOST_BOOST = 25;
-  let ELO_DATA = {};
+  // snapshot of the wall chart's Elo table (storage.googleapis.com has no
+  // CORS headers, so the live GCS file can't be fetched from the browser)
+  let ELO_DATA = {"Spain":1441.6,"France":1436.4,"Germany":1407.3,"England":1406.7,"Netherlands":1405.9,"Brazil":1396.0,"Argentina":1387.3,"Portugal":1385.9,"Belgium":1373.7,"Croatia":1353.5,"Colombia":1316.2,"Uruguay":1296.2,"Switzerland":1273.6,"Turkey":1262.1,"Norway":1257.8,"Mexico":1256.9,"Austria":1254.3,"Senegal":1229.8,"Morocco":1225.6,"Scotland":1221.2,"Japan":1198.5,"Ecuador":1188.8,"Sweden":1184.3,"Ivory Coast":1180.3,"Australia":1177.4,"Egypt":1175.3,"Paraguay":1173.1,"South Korea":1172.9,"Ghana":1163.2,"USA":1160.9,"Canada":1133.5,"Haiti":1134.0,"Saudi Arabia":1131.5,"Algeria":1129.0,"Tunisia":1127.6,"Czechia":1124.2,"Iran":1121.6,"Cape Verde":1110.3,"Iraq":1105.8,"South Africa":1100.2,"Jordan":1098.4,"Panama":1094.5,"Uzbekistan":1090.2,"Qatar":1085.3,"Bosnia-Herzegovina":1082.2,"New Zealand":1078.9,"DR Congo":1076.4,"Curacao":1072.1};
 
   // "13:00 UTC-6" -> the match's true UTC instant
   function parseKickoffUTC(date, time){
@@ -633,9 +635,12 @@
   const ukTime = d => d.toLocaleTimeString("en-GB", {timeZone:"Europe/London", hour:"2-digit", minute:"2-digit"});
   const usEasternDate = d => d.toLocaleDateString("en-US", {timeZone:"America/New_York"});
 
+  // the Elo table uses its own spellings for these three (see NAME2CODE note above)
+  const ELO_ALIAS = {"Czech Republic":"Czechia","Bosnia & Herzegovina":"Bosnia-Herzegovina","Curaçao":"Curacao"};
+  const eloOf = team => ELO_DATA[ELO_ALIAS[team] || team];
   function eloWinPct(teamA, teamB){
-    const ea = (ELO_DATA[teamA] ?? 1000) + (COHOST_TEAMS.has(teamA) ? COHOST_BOOST : 0);
-    const eb = (ELO_DATA[teamB] ?? 1000) + (COHOST_TEAMS.has(teamB) ? COHOST_BOOST : 0);
+    const ea = (eloOf(teamA) ?? 1000) + (COHOST_TEAMS.has(teamA) ? COHOST_BOOST : 0);
+    const eb = (eloOf(teamB) ?? 1000) + (COHOST_TEAMS.has(teamB) ? COHOST_BOOST : 0);
     return 1 / (1 + Math.pow(10, (eb - ea) / 400));
   }
   // placeholders for unresolved knockout slots, e.g. "W101", "3A/B/C/D/F"
@@ -664,7 +669,7 @@
       const unmatched = (codeA == null && !isPlaceholder(m.team1)) || (codeB == null && !isPlaceholder(m.team2));
       let left = null, right = null, center;
       if(mode === "odds"){
-        if(codeA != null && codeB != null && ELO_DATA[m.team1] != null && ELO_DATA[m.team2] != null){
+        if(codeA != null && codeB != null && eloOf(m.team1) != null && eloOf(m.team2) != null){
           const pA = eloWinPct(m.team1, m.team2);
           left = (pA * 100).toFixed(0) + "%";
           right = ((1 - pA) * 100).toFixed(0) + "%";
