@@ -707,9 +707,9 @@
         });
     })
     .catch(() => {
-      [".fixtures-wrap", ".results-wrap"].forEach(sel => {
-        const el = document.querySelector(sel);
-        if(el) el.style.display = "none";
+      ["fixtureRows", "resultRows"].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.innerHTML = `<div class="fempty">Fixtures unavailable right now &mdash; try refreshing later.</div>`;
       });
     });
 
