@@ -699,8 +699,9 @@
 
       return fetch("https://storage.googleapis.com/sports4cast-public/football/data/wc2026.json")
         .then(r => r.ok ? r.json() : null)
-        .then(wc => {
-          if(wc && wc.elo_data) ELO_DATA = wc.elo_data;
+        .then(wc => { if(wc && wc.elo_data) ELO_DATA = wc.elo_data; })
+        .catch(() => {})   // odds are a nice-to-have; fixtures/results still render without them
+        .then(() => {
           renderMatches("fixtureRows", todays, "odds");
           renderMatches("resultRows", recent, "score");
         });
