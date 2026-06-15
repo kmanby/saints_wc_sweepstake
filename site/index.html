@@ -132,7 +132,7 @@
   /* ---------- fixtures / results rows ---------- */
   .frows{display:flex;flex-direction:column}
   .frow{
-    display:grid;grid-template-columns:3rem 1fr 2.6rem 1fr;gap:.5rem;
+    display:grid;grid-template-columns:3rem 1fr 5rem 1fr;gap:.5rem;
     align-items:center;padding:.5rem 0;
     border-bottom:1px solid rgba(217,169,60,.15);
   }
@@ -153,9 +153,10 @@
   .fowner{font-size:.72rem;opacity:.75;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .fcenter{
     text-align:center;font-family:'Saira Condensed',sans-serif;font-weight:700;
-    color:var(--gold);font-size:.85rem;white-space:nowrap;
+    color:var(--cream);font-size:.85rem;white-space:nowrap;
+    display:flex;align-items:center;justify-content:center;gap:.3rem;
   }
-  .fodds{font-size:.78rem;color:var(--gold);font-weight:700;flex:0 0 auto}
+  .fodds{font-size:.78rem;color:var(--gold);font-weight:700}
   .fempty{text-align:center;opacity:.6;font-style:italic;padding:.6rem 0;font-size:.88rem}
 
   /* ---------- wall chart embed ---------- */
@@ -646,15 +647,14 @@
   // placeholders for unresolved knockout slots, e.g. "W101", "3A/B/C/D/F"
   const isPlaceholder = team => /^[\dWL]/.test(team);
 
-  function teamCell(team, code, extra, side){
+  function teamCell(team, code, side){
     const flagImg = code != null ? `<img class="fflag" src="${flagData(code)}" alt="">` : "";
     const name = code != null ? TEAM_NAME[code] : team;
     const owner = code != null ? (OWNERS[code] || "").replace(/\s+\d+$/, "") : "";
     const meta = `<div class="fmeta"><span class="fname">${name}</span>${owner ? `<span class="fowner">${owner}</span>` : ""}</div>`;
-    const extraEl = extra != null ? `<span class="fodds">${extra}</span>` : "";
     return side === "b"
-      ? `<div class="fteam fteam-b">${extraEl}${meta}${flagImg}</div>`
-      : `<div class="fteam fteam-a">${flagImg}${meta}${extraEl}</div>`;
+      ? `<div class="fteam fteam-b">${meta}${flagImg}</div>`
+      : `<div class="fteam fteam-a">${flagImg}${meta}</div>`;
   }
 
   function renderMatches(containerId, matches, mode){
@@ -667,23 +667,23 @@
     el.innerHTML = matches.map(m => {
       const codeA = NAME2CODE[m.team1], codeB = NAME2CODE[m.team2];
       const unmatched = (codeA == null && !isPlaceholder(m.team1)) || (codeB == null && !isPlaceholder(m.team2));
-      let left = null, right = null, center;
+      let center;
       if(mode === "odds"){
         if(codeA != null && codeB != null && eloOf(m.team1) != null && eloOf(m.team2) != null){
           const pA = eloWinPct(m.team1, m.team2);
-          left = (pA * 100).toFixed(0) + "%";
-          right = ((1 - pA) * 100).toFixed(0) + "%";
+          center = `<span class="fodds">${(pA * 100).toFixed(0)}%</span> v <span class="fodds">${((1 - pA) * 100).toFixed(0)}%</span>`;
+        } else {
+          center = "v";
         }
-        center = "v";
       } else {
         center = m.score ? `${m.score.ft[0]}&ndash;${m.score.ft[1]}` : "TBD";
       }
       const warn = unmatched ? ` <span style="color:#E07A6A">(unmatched team)</span>` : "";
       return `<div class="frow">
         <div class="ftime">${ukTime(m._kickoff)}</div>
-        ${teamCell(m.team1, codeA, left, "a")}
+        ${teamCell(m.team1, codeA, "a")}
         <div class="fcenter">${center}${warn}</div>
-        ${teamCell(m.team2, codeB, right, "b")}
+        ${teamCell(m.team2, codeB, "b")}
       </div>`;
     }).join("");
   }
