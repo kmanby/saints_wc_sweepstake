@@ -57,6 +57,15 @@ async function checkIndex({ sim, sweep }) {
   const { dom, errors, doc, win } = await loadPage("/");
   check("no page JS errors", errors.length === 0, errors.slice(0, 3).join(" | "));
 
+  // today's fixtures / recent results (live from openfootball)
+  const fixtureRows = [...doc.querySelectorAll("#fixtureRows .frow, #fixtureRows .fempty")];
+  check("fixtures section rendered", fixtureRows.length > 0, `${fixtureRows.length} rows`);
+  const resultRows = [...doc.querySelectorAll("#resultRows .frow, #resultRows .fempty")];
+  check("results section rendered", resultRows.length > 0, `${resultRows.length} rows`);
+  const fixtureWarnings = doc.querySelectorAll("#fixtureRows .frow span[style*='E07A6A'], #resultRows .frow span[style*='E07A6A']");
+  check("no unmatched teams in fixtures/results", fixtureWarnings.length === 0,
+    [...fixtureWarnings].map(w => w.closest(".frow")?.textContent.trim()).join(" | "));
+
   const rows = [...doc.querySelectorAll("#chartRows .crow")];
   check("odds chart rendered (33 people)", rows.length === 33, `${rows.length} rows`);
 
