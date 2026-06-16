@@ -23,5 +23,14 @@ jobs:
           git config user.name "saints-sim-bot"
           git config user.email "actions@users.noreply.github.com"
           git add site/data/daily-sim.json
-          git diff --staged --quiet || git commit -m "Daily sim $(date -u +%F)"
-          git push
+          git diff --staged --quiet && { echo "No change in odds; nothing to commit."; exit 0; }
+          git commit -m "Daily sim $(date -u +%F)"
+          # main may have moved on since checkout (e.g. a merge landed mid-run);
+          # rebase onto the latest and retry the push a few times before failing.
+          for i in 1 2 3 4 5; do
+            git push && exit 0
+            echo "Push rejected (attempt $i); rebasing on origin/main and retrying…"
+            git pull --rebase origin main || exit 1
+          done
+          echo "Push still failing after retries." >&2
+          exit 1
