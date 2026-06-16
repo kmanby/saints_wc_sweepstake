@@ -580,6 +580,10 @@ footer{
 .st-powered{font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.22em;font-size:.66rem;color:var(--muted);margin-top:.35rem}
 .st-powered a{color:var(--lime);text-decoration:none;border-bottom:1px solid var(--lime-dim)}
 .st-legend{font-style:italic;font-size:.8rem;color:var(--muted);margin-top:.55rem}
+.stale-banner{max-width:680px;margin:.2rem auto 1rem;background:rgba(224,122,106,.12);
+  border:1px solid #E07A6A;border-radius:8px;color:#F3DCD6;padding:.6rem .9rem;
+  font-size:.8rem;line-height:1.45;text-align:center}
+.stale-banner strong{color:#E07A6A;font-weight:700}
 /* hooks for Phase 3: confirmed real results */
 .tr.locked .pc{pointer-events:none;filter:saturate(.4)}
 .tr.locked{outline:1px solid var(--border-hi)}
@@ -592,6 +596,10 @@ footer{
   <div class="st-title">Saints CC <span>World Cup Wall Chart</span></div>
   <div class="st-powered">Powered by <a href="https://sports4cast.com/4casts/football4cast/world-cup-football-predictions/" target="_blank" rel="noopener">Sports4cast</a></div>
   <div class="st-legend">Every name below is a Saints ticket-holder &mdash; hover or tap a flag for the country, its champion odds and the fun fact. Everything is the model&rsquo;s daily prediction until real results lock in; click any probability to play out your own scenario.</div>
+</div>
+
+<div id="staleBanner" class="stale-banner" hidden>
+  &#9888; Live odds feed unavailable &mdash; these probabilities are a <strong>pre-tournament snapshot</strong> and don&rsquo;t yet reflect group-stage results.
 </div>
 
 <div class="groups-section">
@@ -2180,7 +2188,11 @@ const _WC_DATA_URL = 'https://storage.googleapis.com/sports4cast-public/football
 fetch(_WC_DATA_URL)
   .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
   .then(d => { TEAM_DATA = d.team_data; if(d.elo_data) ELO = d.elo_data; })
-  .catch(() => { TEAM_DATA = TEAM_DATA_FALLBACK; })
+  .catch(() => {
+    TEAM_DATA = TEAM_DATA_FALLBACK;
+    const b = document.getElementById("staleBanner");
+    if(b) b.hidden = false;   // surface that we're on the embedded snapshot
+  })
   .finally(() => {
     // Pristine champion distribution for the team card's fallback — must be
     // computed BEFORE autofill, while no positions/winners are locked in.

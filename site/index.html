@@ -159,6 +159,15 @@
   .fodds{font-size:.78rem;color:var(--gold);font-weight:700}
   .fempty{text-align:center;opacity:.6;font-style:italic;padding:.6rem 0;font-size:.88rem}
 
+  /* ---------- stale-data banner ---------- */
+  .stale-banner{
+    max-width:760px;width:94vw;margin:0 auto 1.4rem;
+    background:rgba(224,122,106,.12);border:1px solid #E07A6A;border-radius:8px;
+    color:#F3DCD6;padding:.7rem 1.1rem;font-size:.86rem;line-height:1.45;text-align:center;
+    font-family:'Saira Condensed',sans-serif;letter-spacing:.02em;
+  }
+  .stale-banner strong{color:#E07A6A;font-weight:700}
+
   /* ---------- wall chart embed ---------- */
   .wallchart-sec{width:96vw;max-width:1180px;margin:0 auto 2.2rem;text-align:center}
   #wallchartFrame{
@@ -262,6 +271,11 @@
   <div class="sub">FIFA World Cup <span class="wc">Sweepstake Tracker</span></div>
   <div class="headline">48 Teams &middot; One Hat &middot; &pound;180 Pot</div>
 </header>
+
+<div id="staleBanner" class="stale-banner" hidden>
+  &#9888; Live odds feed is currently unavailable &mdash; every win probability and fixture odd below is a
+  <strong>pre-tournament snapshot</strong> and does <strong>not</strong> yet reflect group-stage results.
+</div>
 
 <section class="chart-wrap fixtures-wrap">
   <h2 class="section-h">Today&rsquo;s Fixtures</h2>
@@ -577,6 +591,14 @@
     }
   }
 
+  // Show/hide the "odds are a stale snapshot" banner. The sim records whether
+  // it actually reached Sports4cast (source: "sports4cast-live") or fell back
+  // to the embedded pre-tournament snapshot — surface that honestly.
+  function setStale(isStale){
+    const b = document.getElementById("staleBanner");
+    if(b) b.hidden = !isStale;
+  }
+
   renderOddsChart(WINPC_SNAPSHOT, "Sports4cast model &middot; 12 Jun 2026 snapshot");
 
   // first choice: the canonical daily Monte Carlo, committed each morning by the sim bot
@@ -584,7 +606,8 @@
   fetch("data/daily-sim.json")
     .then(r => r.ok ? r.json() : null)
     .then(d => {
-      if(!d || !d.champion) return;
+      if(!d || !d.champion){ setStale(true); return; }
+      setStale(d.source !== "sports4cast-live");
       const live = {}, unmatched = [];
       for(const [team, v] of Object.entries(d.champion)){
         const code = NAME2CODE[team];
@@ -601,7 +624,7 @@
       const when = d.generated ? d.generated.slice(0,10) : "";
       renderOddsChart(live, `Daily ${(d.sims||0).toLocaleString()}-sim Monte Carlo &middot; ${when}`, unmatched, modal);
     })
-    .catch(()=>{});
+    .catch(()=> setStale(true));
 
   // live: the wall chart publishes its model's champion distribution on load
   window.addEventListener("message", e=>{
