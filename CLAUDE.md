@@ -118,8 +118,9 @@ group stage finishes; do not simulate it.
 ## Daily sim subsystem
 - `sim/simulate.mjs` runs a deterministic Monte Carlo of the whole tournament
   (default 10,000 sims, seed = today's date) and writes
-  `site/data/daily-sim.json`. `.github/workflows/daily-sim.yml` runs it at
-  06:35 UK daily and commits the result, which redeploys Netlify.
+  `site/data/daily-sim.json`. `.github/workflows/daily-sim.yml` runs it
+  ~05:14 UK daily (deliberately early — GitHub often dispatches scheduled
+  runs hours late) and commits the result, which redeploys Netlify.
 - The sim EXTRACTS its model from site/wallchart.html at runtime (vm + DOM
   stubs) — Elo, winProb, co-host boost, bracket slots, third-place allocation.
   One source of truth: never duplicate those tables into the sim.
