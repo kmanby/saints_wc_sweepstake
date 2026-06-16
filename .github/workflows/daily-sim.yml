@@ -22,15 +22,20 @@ jobs:
         run: |
           git config user.name "saints-sim-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add site/data/daily-sim.json
-          git diff --staged --quiet && { echo "No change in odds; nothing to commit."; exit 0; }
-          git commit -m "Daily sim $(date -u +%F)"
-          # main may have moved on since checkout (e.g. a merge landed mid-run);
-          # rebase onto the latest and retry the push a few times before failing.
+          # Keep the freshly-generated odds aside, then always re-apply them on
+          # top of the very latest main. This survives races (a merge or a
+          # concurrent run landing mid-job): each retry resets to origin/main,
+          # so the push is a clean fast-forward and an identical file is a no-op.
+          cp site/data/daily-sim.json "$RUNNER_TEMP/daily-sim.json"
           for i in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+            cp "$RUNNER_TEMP/daily-sim.json" site/data/daily-sim.json
+            git add site/data/daily-sim.json
+            git diff --staged --quiet && { echo "Odds already current on main; nothing to commit."; exit 0; }
+            git commit -m "Daily sim $(date -u +%F)"
             git push && exit 0
-            echo "Push rejected (attempt $i); rebasing on origin/main and retrying…"
-            git pull --rebase origin main || exit 1
+            echo "Push raced (attempt $i); refreshing main and retrying…"
           done
           echo "Push still failing after retries." >&2
           exit 1
