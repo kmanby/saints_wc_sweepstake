@@ -287,6 +287,8 @@ async function main() {
     generated: new Date().toISOString(),
     seed: SEED, sims: SIMS, source, source_updated: sourceUpdated,
     method: "Monte Carlo over official bracket; groups from Sports4cast p1-p4 marginals; knockouts (incl. third-place playoff) from wall-chart Elo model; modal = single most-likely playthrough, matching the wall chart's autosim",
+    team_data: TD,
+    elo_data: M.ELO ?? null,
     champion: sortedPctMap("win"),
     runnerUp: sortedPctMap("runnerUp"),
     third: sortedPctMap("third"),
