@@ -32,7 +32,7 @@ const arg = (name, dflt) => {
 const SIMS = parseInt(arg("sims", "10000"), 10);
 const today = new Date().toISOString().slice(0, 10);
 const SEED = parseInt(arg("seed", today.replace(/-/g, "")), 10);
-const DATA_URL = "https://storage.googleapis.com/sports4cast-public/football/data/wc2026.json";
+const SIGNED_URL_ENDPOINT = "https://sports4cast.com/wp-json/football/v1/signed-urls?files[]=wc2026";
 
 // ---------- deterministic PRNG (identical everywhere, unlike Math.random) ----------
 function mulberry32(a) {
@@ -246,15 +246,23 @@ async function main() {
   const M = extractModel(wallchartPath);
 
   // live daily data, with the wall chart's embedded snapshot as fallback
+  // Two-step: get a 60-second signed URL, then fetch the actual data
   let TD = M.TEAM_DATA_FALLBACK, source = "fallback-snapshot", sourceUpdated = null;
   try {
-    const r = await fetch(DATA_URL, { signal: AbortSignal.timeout(15000) });
-    if (r.ok) {
-      const d = await r.json();
-      if (d && d.team_data) {
-        TD = d.team_data;
-        source = "sports4cast-live";
-        sourceUpdated = d.updated ?? d.last_updated ?? null;
+    const sigR = await fetch(SIGNED_URL_ENDPOINT, { signal: AbortSignal.timeout(10000) });
+    if (sigR.ok) {
+      const sigD = await sigR.json();
+      const signedUrl = sigD.wc2026;
+      if (signedUrl) {
+        const r = await fetch(signedUrl, { signal: AbortSignal.timeout(15000) });
+        if (r.ok) {
+          const d = await r.json();
+          if (d && d.team_data) {
+            TD = d.team_data;
+            source = "sports4cast-live";
+            sourceUpdated = d.updated ?? d.last_updated ?? null;
+          }
+        }
       }
     }
   } catch { /* fallback stands */ }

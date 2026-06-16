@@ -2184,8 +2184,10 @@ function resetAll(){
 }
 
 // ─── INIT ───────────────────────────────────────────────────────────
-const _WC_DATA_URL = 'https://storage.googleapis.com/sports4cast-public/football/data/wc2026.json';
-fetch(_WC_DATA_URL)
+const _SIGNED_URL_ENDPOINT = 'https://sports4cast.com/wp-json/football/v1/signed-urls?files[]=wc2026';
+fetch(_SIGNED_URL_ENDPOINT)
+  .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+  .then(d => { if(!d.wc2026) throw new Error('no signed url'); return fetch(d.wc2026); })
   .then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
   .then(d => { TEAM_DATA = d.team_data; if(d.elo_data) ELO = d.elo_data; })
   .catch(() => {
