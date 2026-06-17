@@ -279,13 +279,13 @@
 
 <section class="chart-wrap fixtures-wrap">
   <h2 class="section-h">Today&rsquo;s Fixtures</h2>
-  <div class="chart-sub">Kickoff times shown in UK time &middot; win% from the Elo model &middot; &ldquo;today&rdquo; = US Eastern date</div>
+  <div class="chart-sub">Kickoff times shown in UK time &middot; win% from the Elo model &middot; &ldquo;today&rdquo; = US Pacific date</div>
   <div id="fixtureRows" class="frows"></div>
 </section>
 
 <section class="chart-wrap results-wrap">
   <h2 class="section-h">Recent Results</h2>
-  <div class="chart-sub">Matches finished in the last 24 hours</div>
+  <div class="chart-sub">Yesterday&rsquo;s results &middot; US Pacific date</div>
   <div id="resultRows" class="frows"></div>
 </section>
 
@@ -657,7 +657,7 @@
     return new Date(naive.getTime() - offset * 3600000);
   }
   const ukTime = d => d.toLocaleTimeString("en-GB", {timeZone:"Europe/London", hour:"2-digit", minute:"2-digit"});
-  const usEasternDate = d => d.toLocaleDateString("en-US", {timeZone:"America/New_York"});
+  const usPacificDate = d => d.toLocaleDateString("en-US", {timeZone:"America/Los_Angeles"});
 
   // the Elo table uses its own spellings for these three (see NAME2CODE note above)
   const ELO_ALIAS = {"Czech Republic":"Czechia","Bosnia & Herzegovina":"Bosnia-Herzegovina","Curaçao":"Curacao"};
@@ -684,7 +684,7 @@
     const el = document.getElementById(containerId);
     if(!el) return;
     if(!matches.length){
-      el.innerHTML = `<div class="fempty">${mode === "odds" ? "No matches today" : "No results in the last 24 hours"}</div>`;
+      el.innerHTML = `<div class="fempty">${mode === "odds" ? "No matches today" : "No results yesterday"}</div>`;
       return;
     }
     el.innerHTML = matches.map(m => {
@@ -717,12 +717,13 @@
       if(!d || !d.matches) return;
       const matches = d.matches.map(m => ({...m, _kickoff: parseKickoffUTC(m.date, m.time)}));
       const now = new Date();
-      const today = usEasternDate(now);
+      const today = usPacificDate(now);
+      const yesterday = usPacificDate(new Date(now - 86400000));
       const todays = matches
-        .filter(m => usEasternDate(m._kickoff) === today)
+        .filter(m => usPacificDate(m._kickoff) === today)
         .sort((a, b) => a._kickoff - b._kickoff);
       const recent = matches
-        .filter(m => m.score && now - m._kickoff >= 0 && now - m._kickoff <= 24 * 3600000)
+        .filter(m => m.score && usPacificDate(m._kickoff) === yesterday)
         .sort((a, b) => b._kickoff - a._kickoff);
 
       return fetch("https://storage.googleapis.com/sports4cast-public/football/data/wc2026.json")
