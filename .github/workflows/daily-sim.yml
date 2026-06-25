@@ -2,7 +2,7 @@ name: Daily sweepstake sims
 
 on:
   schedule:
-    - cron: "14 4 * * *"   # 04:14 UTC = 05:14 UK summer time; upstream data refreshes ~04:00 UK. GitHub often dispatches scheduled runs hours late, so we aim early.
+    - cron: "30 9 * * *"   # 09:30 UTC = 10:30 UK (BST). Upstream regenerates its 10k sim ~09:00 UTC (observed 09:01Z), so we run JUST AFTER to catch the same day's numbers — an earlier run only ever sees yesterday's. GitHub often dispatches scheduled runs late, which here only pushes us further past the refresh (harmless).
   workflow_dispatch:        # allows manual runs from the Actions tab
 
 permissions:
