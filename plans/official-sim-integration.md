@@ -57,20 +57,25 @@ Map `source_updated = feed.generated`.
 
 ### 1. Data source + fallback chain (3 states)
 
-1. **Live** — fetch today's feed via the signed URL (as now). `source =
-   "sports4cast-live"`.
-2. **Stale-but-official** — live fetch fails OR returns no `chances` OR
-   `generated` is older than the run date → load `sim/fixtures/wc2026.json`.
-   Still official numbers, just not today's. `source = "fixture-fallback"`;
-   pages show a soft "official data from <date>" note.
-3. **Model fallback** — fixture missing or older than a threshold (default 3
-   days) → run our **full Monte Carlo** off the wall-chart snapshot, exactly as
-   today. `source = "sim-fallback"`; pages show a loud "live data lost — showing
-   our own model" banner. This is Kit's "use our sim in its entirety and
-   highlight that the connection is lost" state.
+1. **Live** — fetch the feed via the signed URL. A successful fetch with valid
+   `chances` is `source = "sports4cast-live"` **regardless of its `generated`
+   date**. Their sim regenerates mid-morning (~09:00Z), *after* our early cron,
+   so the live feed is routinely dated "yesterday" at run time — normal, not
+   stale. A "must be today" check here would flip every cron run to the cache and
+   starve the fixture (which only refreshes on a live run) into the model
+   fallback within days. Age is a display concern, handled by the banner (§5).
+2. **Cache fallback** — live fetch *fails* or returns no `chances` → load
+   `sim/fixtures/wc2026.json` if it is within `STALE_DAYS` (3). Official numbers,
+   just not freshly fetched. `source = "fixture-fallback"`.
+3. **Model fallback** — live unreachable AND the fixture missing or older than
+   `STALE_DAYS` → run our **full Monte Carlo** off the wall-chart snapshot.
+   `source = "sim-fallback"`; pages show the loud "live data lost — our own
+   model" banner. Kit's "use our sim entirely and flag the lost connection" state.
 
-"Missing" must include **stale**, not just a failed fetch — their feed silently
-rotted once before (the dead `wc2026_chances.json`).
+Staleness is a **display** concern, not a source-selection one: the banner (§5)
+flags official figures ≥2 days old. Their feed silently rotted once before (the
+dead `wc2026_chances.json`); the banner is what catches a feed that stops moving,
+without misfiring on the normal overnight one-day lag.
 
 **Auto-refresh (decided ON):** the daily action rewrites
 `sim/fixtures/wc2026.json` on every successful live fetch and commits it
@@ -126,8 +131,12 @@ changes — only the numbers' provenance changes:
 
 ### 5. Pages
 
-- Add a `source`-driven banner in `index.html` + `wallchart.html`: hidden for
-  `sports4cast-live`, soft note for `fixture-fallback`, loud for `sim-fallback`.
+- Banner driven by the **data's age**, not the source label: hidden for current
+  official figures (today's or yesterday's — the feed refreshes overnight), a
+  soft "feed hasn't refreshed in a few days" note at ≥2 days, and the loud "our
+  own model" warning only for `sim-fallback`. A same-day `fixture-fallback` is
+  current data and shows no banner. (`index.html`; wallchart keeps its champion
+  fallback unchanged.)
 - **Revive index.html odds**: its `elo_data` fetch points at the dead
   `sports4cast-public/.../wc2026.json` (now 404). Repoint to the signed-URL
   scheme, or read `elo_data` from `daily-sim.json` (the sim already has it).

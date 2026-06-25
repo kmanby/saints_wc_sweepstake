@@ -376,9 +376,16 @@ async function loadOfficialFeed(fixturePath, todayStr) {
         if (r.ok) {
           const raw = await r.text();
           const d = JSON.parse(raw);
-          if (feedUsable(d) && daysOld(d.generated, todayStr) <= 0)
+          // A successful live fetch IS the upstream's current truth — accept it
+          // whatever its date. Their sim regenerates mid-morning (~09:00Z), AFTER
+          // our early cron, so the feed is often still dated yesterday at run time;
+          // a "must be today" check here would needlessly demote every cron run to
+          // the cache and (since the fixture only refreshes on a live run) starve it
+          // into the model fallback within days. Age is surfaced by the banner, not
+          // by demoting the source.
+          if (feedUsable(d))
             return { feed: d, source: "sports4cast-live", raw };
-          console.warn("Live feed reached but stale/incomplete — trying the saved fixture");
+          console.warn("Live feed reached but unusable (missing chances?) — trying the saved fixture");
         }
       }
     }
