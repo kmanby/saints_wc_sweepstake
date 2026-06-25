@@ -155,6 +155,12 @@ group stage finishes; do not simulate it.
   when `modal` is present (fallback sources draw the bar alone, no podium).
 
 ## Dev workflow
+- **ALWAYS keep this file (CLAUDE.md) current.** Any change to architecture,
+  data flow, the sim, the pages, or a documented behaviour MUST update the
+  matching section of CLAUDE.md as part of the same change — not a follow-up,
+  not "later". Stale docs here have actively misled work (e.g. the section once
+  said knockouts use Elo `winProb` long after they switched to the feed's
+  `chances.win`). Treat the doc edit as part of the task's definition of done.
 - Local: `npm install`, then `npx netlify dev --offline` (add `.env` with
   `SPORTS4CAST_KEY=...` for a working proxy; without it `/api/*` returns the
   deliberate "Server not configured" 500).
