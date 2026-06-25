@@ -69,11 +69,12 @@ Map `source_updated = feed.generated`.
 "Missing" must include **stale**, not just a failed fetch — their feed silently
 rotted once before (the dead `wc2026_chances.json`).
 
-Optional enhancement (flagged, not default): have the daily action **refresh
-`sim/fixtures/wc2026.json` on every successful live fetch**, so the backup is
-never more than a day old and state 3 effectively never triggers. Trade-off: it
-republishes the friend's feed into git daily. Default stays manual (re-run
-`tools/fetch-wc2026.mjs`).
+**Auto-refresh (decided ON):** the daily action rewrites
+`sim/fixtures/wc2026.json` on every successful live fetch and commits it
+alongside `daily-sim.json`, so the backup is never more than a day old and
+state 3 only triggers after 3+ consecutive days of feed failure. The fixture
+becomes a rolling latest-good copy (git history keeps the daily snapshots).
+Accepted trade-off: it republishes the friend's feed into git daily.
 
 ### 2. Champion & runner-up — official, direct
 
@@ -130,11 +131,24 @@ changes — only the numbers' provenance changes:
 - `wallchart.html` champion %: already reads `daily-sim.json` champion (now
   official) with the in-page Elo model as fallback — keep.
 
-### 6. Wooden spoon (bonus, ~27 Jun)
+### 6. Wooden spoon (~27 Jun)
 
-`fifa_pts` gives the final tiebreak (points → GD → GF → GA → fair play → FIFA
-ranking). Still hard-coded from real results per the standing decision, but the
-ranking tiebreak no longer needs manual lookup.
+Cannot be *forecast*: the spoon needs points → GD → GF → GA → fair play → FIFA
+ranking, and neither our sim nor the feed produces scorelines or cards (the
+12 Jun "don't simulate it" decision still holds). The feed only supplies points
+(`pts`, partial until the last group games) and the FIFA tiebreak (`fifa_pts`).
+
+But the "hard-code from real results" step can now be **automated** once the
+group stage finishes: compute points/GD/GF/GA for all 48 from the real
+scorelines we already fetch (openfootball, plus Sports4cast `results.json`),
+rank them, take the bottom team, with `fifa_pts` as the FIFA-ranking tiebreak.
+Only **fair play (cards)** stays manual — and only matters in an exact
+points+GD+GF+GA tie, so it's a rare manual override, not a daily task.
+
+Optional now: a provisional "spoon watch" badge from live `pts` + `p4`, clearly
+flagged as not-final until 27 Jun (today's standout candidate: Haiti — 0 pts,
+p4 = 100% in Group C — but several 0-point teams are still separated only by
+GD/GF/GA we don't yet have).
 
 ## Implementation order
 
@@ -156,11 +170,11 @@ ranking tiebreak no longer needs manual lookup.
 - Spot-check: official `champion` top teams match the feed's `win` ordering;
   `third` sums to 100; banner renders per simulated `source`.
 
-## Open questions for Kit
+## Decisions (locked 2026-06-25, Kit)
 
-1. **Third-place method**: the one-match model (§3, lightweight, your "sim one
-   match" idea) vs. keeping the full Monte Carlo just for `third` (simpler,
-   exact joint, but doesn't "stop our sim" on the live path). Recommend §3.
-2. **Stale threshold** for dropping to the full-model fallback — default 3 days?
-3. **Auto-refresh the fixture** on every successful live run (backup never
-   stale) vs. manual refresh? Default manual.
+1. **Third-place method**: the lightweight one-match model (§3).
+2. **Stale threshold**: 3 days before dropping to the full-model fallback.
+3. **Auto-refresh the fixture** on every successful live run: yes (see §1).
+
+Spoon: keep it out of the forecast (can't be simulated), but automate the
+"from real results" computation after 27 Jun, fair-play tiebreak aside (§6).
