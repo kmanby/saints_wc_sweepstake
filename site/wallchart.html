@@ -1221,6 +1221,18 @@ function groupTeams(g){
 function isGroupDone(g){ return [1,2,3,4].every(p=>sel[g][p]); }
 function doneCount(){ return GROUPS.filter(isGroupDone).length; }
 
+// A group's REAL result is final only when every team is certain of its
+// finishing position in the feed (one slot rounds to 100%) — i.e. all games
+// played. Distinct from isGroupDone, which is true as soon as the autosim
+// pre-fills sel. Drives the "complete" tick so it marks real results only.
+function isGroupComplete(g){
+  if(!TEAM_DATA) return false;
+  return groupTeams(g).every(t=>{
+    const d = TEAM_DATA[t];
+    return d && Math.round(Math.max(d.p1||0,d.p2||0,d.p3||0,d.p4||0)) >= 100;
+  });
+}
+
 // Effective position locks for a group: user selections (sel[g]) plus
 // auto-locks for any team certain (rounds to 100%) of a position. {team: pos}.
 function groupLocks(g){
@@ -1299,7 +1311,7 @@ function buildGroupCard(g){
   const lockedMap = groupLocks(g);
   const sorted = orderedGroup(g, lockedMap);
 
-  const done = isGroupDone(g);
+  const done = isGroupComplete(g);
   const card = document.createElement("div");
   card.className = `gc${done?" complete":""}`;
   card.dataset.group = g;

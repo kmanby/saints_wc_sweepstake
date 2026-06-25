@@ -147,13 +147,24 @@ async function checkIndex({ sim, sweep }) {
   dom.window.close();
 }
 
-async function checkWallchart() {
+async function checkWallchart(sim) {
   console.log("\nwallchart.html");
   const { dom, errors, doc, win } = await loadPage("/wallchart.html");
   check("no page JS errors", errors.length === 0, errors.slice(0, 3).join(" | "));
 
   const groupCards = doc.querySelectorAll(".gc");
   check("12 group cards", groupCards.length === 12, `${groupCards.length}`);
+
+  // The "complete" tick must mark only groups whose real result is final (every
+  // team certain of its slot), NOT every group the autosim pre-filled.
+  const byGroup = {};
+  for (const v of Object.values(sim.team_data || {})) (byGroup[v.group] ??= []).push(v);
+  const expectComplete = Object.entries(byGroup)
+    .filter(([, ts]) => ts.every(v => Math.round(Math.max(v.p1 || 0, v.p2 || 0, v.p3 || 0, v.p4 || 0)) >= 100))
+    .map(([g]) => g).sort();
+  const markedComplete = [...doc.querySelectorAll(".gc.complete")].map(c => c.dataset.group).sort();
+  check("'complete' ticks mark only finished groups", JSON.stringify(markedComplete) === JSON.stringify(expectComplete),
+    `marked [${markedComplete}] vs decided [${expectComplete}]`);
 
   const matchCards = doc.querySelectorAll("[data-matchid]");
   check("31 knockout match cards", matchCards.length === 31, `${matchCards.length}`);
@@ -237,7 +248,7 @@ if (!probe || !probe.ok) {
 
 const data = await checkFacts();
 await checkIndex(data);
-await checkWallchart();
+await checkWallchart(data.sim);
 await checkDraw();
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nall checks passed");
