@@ -258,6 +258,41 @@ function modalScenario(M, TD, groupTeams) {
   return podium(winners, M, favourite);
 }
 
+// round a slot's {team: prob} to 4dp, drop zeros, sort descending
+function sortRoundDist(dist) {
+  return Object.fromEntries(Object.entries(dist)
+    .map(([t, v]) => [t, +v.toFixed(4)])
+    .filter(([, v]) => v > 0)
+    .sort((a, b) => b[1] - a[1]));
+}
+
+// Rake the raw Monte-Carlo R32 third-slot distribution so each team's slot-total
+// equals its p3q (the qualification probability) while each slot still sums to 1
+// — iterative proportional fitting. Σp3q = 8 = number of variable third-slots,
+// so the row and column marginals are consistent and IPF converges. This makes
+// the R32 projection's per-team totals match the qualification section exactly.
+// Skipped when p3q is absent (legacy data): the raw Monte-Carlo dists stand.
+function rakeSlotDists(rawDists, TD) {
+  const slots = Object.keys(rawDists);
+  const teams = [...new Set(slots.flatMap(s => Object.keys(rawDists[s])))];
+  if (!teams.some(t => TD[t]?.p3q != null))
+    return Object.fromEntries(slots.map(s => [s, sortRoundDist(rawDists[s])]));
+
+  const rowTarget = Object.fromEntries(teams.map(t => [t, (TD[t]?.p3q ?? 0) / 100]));
+  const m = Object.fromEntries(slots.map(s => [s, { ...rawDists[s] }]));
+  for (let iter = 0; iter < 100; iter++) {
+    const rowSum = {};
+    for (const s of slots) for (const [t, v] of Object.entries(m[s])) rowSum[t] = (rowSum[t] || 0) + v;
+    for (const s of slots) for (const t of Object.keys(m[s]))
+      if (rowSum[t] > 0) m[s][t] *= rowTarget[t] / rowSum[t];   // rows -> p3q
+    for (const s of slots) {
+      const colSum = Object.values(m[s]).reduce((a, b) => a + b, 0);
+      if (colSum > 0) for (const t of Object.keys(m[s])) m[s][t] /= colSum;  // slots -> 1
+    }
+  }
+  return Object.fromEntries(slots.map(s => [s, sortRoundDist(m[s])]));
+}
+
 // ---------- main ----------
 async function main() {
   const repoRoot = process.cwd();
@@ -311,6 +346,13 @@ async function main() {
   const pct = n => +(n / SIMS * 100).toFixed(2);
   const sortedPctMap = key => Object.fromEntries(
     teams.map(t => [t, pct(tally[t][key])]).sort((a, b) => b[1] - a[1]));
+
+  // R32 third-slot distribution: raw Monte-Carlo counts, then raked to the p3q
+  // marginals so each team's slot-total matches its qualification probability.
+  const rawSlotDists = Object.fromEntries(Object.entries(slotTally).map(([sid, counts]) =>
+    [sid, Object.fromEntries(Object.entries(counts).map(([t, n]) => [t, n / SIMS]))]));
+  const thirdSlotDists = rakeSlotDists(rawSlotDists, TD);
+
   const out = {
     generated: new Date().toISOString(),
     seed: SEED, sims: SIMS, source, source_updated: sourceUpdated,
@@ -326,14 +368,9 @@ async function main() {
       sf: pct(tally[t].sf), f: pct(tally[t].f), win: pct(tally[t].win),
       runnerUp: pct(tally[t].runnerUp), third: pct(tally[t].third),
     }])),
-    // R32 third-place slot distribution: { r32_id: { team: prob 0-1 } }, from the
-    // same p3q-weighted Monte Carlo as qualification, so the two stay aligned.
-    third_slot_dists: Object.fromEntries(Object.entries(slotTally).map(([sid, counts]) => [
-      sid,
-      Object.fromEntries(Object.entries(counts)
-        .map(([t, n]) => [t, +(n / SIMS).toFixed(4)])
-        .sort((a, b) => b[1] - a[1])),
-    ])),
+    // R32 third-place slot distribution: { r32_id: { team: prob 0-1 } }, raked so
+    // each team's slot-total equals its p3q — aligned with the qualification section.
+    third_slot_dists: thirdSlotDists,
   };
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
