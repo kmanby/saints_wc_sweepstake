@@ -128,10 +128,18 @@ function sampleGroupOrder(teams, td) {
   return order; // [1st, 2nd, 3rd, 4th]
 }
 
-// 8 of 12 thirds qualify, weighted by Elo (Efraimidis–Spirakis without replacement)
-function sampleQualifyingThirds(thirdByGroup, effElo) {
+// 8 of 12 thirds qualify, weighted by Sports4cast's points-based third-place
+// qualification probability (Efraimidis–Spirakis without replacement). The
+// weight is conditional — p3q/p3 = P(best-8 third | finished 3rd) — so the
+// aggregate qualify rate reproduces S4C's unconditional p3q. Falls back to p3
+// for legacy data that predates the p3q field. (Elo no longer used here.)
+function sampleQualifyingThirds(thirdByGroup, TD) {
   const entries = Object.entries(thirdByGroup).map(([g, team]) => {
-    const w = Math.exp(effElo(team) / 120);
+    const td = TD[team];
+    const p3 = td.p3 ?? 0;
+    const w = (td.p3q != null && p3 > 0)
+      ? Math.max(1e-4, td.p3q / p3)
+      : Math.max(1e-4, p3);
     return { g, key: Math.pow(rand(), 1 / w) };
   });
   entries.sort((a, b) => b.key - a.key);
@@ -166,14 +174,14 @@ function podium(winners, M, decide) {
 }
 
 // ---------- one full tournament ----------
-function simulateOnce(M, TD, groupTeams, tally) {
+function simulateOnce(M, TD, groupTeams, tally, slotTally) {
   const first = {}, second = {}, third = {};
   for (const g of M.GROUPS) {
     const [a, b, c] = sampleGroupOrder(groupTeams[g], TD);
     first[g] = a; second[g] = b; third[g] = c;
   }
 
-  const qualGroups = sampleQualifyingThirds(third, M.effElo);
+  const qualGroups = sampleQualifyingThirds(third, TD);
   const comboKey = qualGroups.join("");
   const thirdMap = M.THIRD_COMBOS[comboKey];
   if (!thirdMap) throw new Error("No third-place combo for " + comboKey);
@@ -185,6 +193,12 @@ function simulateOnce(M, TD, groupTeams, tally) {
   for (const [sid, def] of Object.entries(M.R32_SLOT_DEFS)) {
     const A = resolveSide(def, "a"), B = resolveSide(def, "b");
     if (!A || !B) throw new Error("Unresolved R32 side in " + sid);
+    // record which third-place team landed in this R32 slot (for third_slot_dists)
+    const thirdSide = def.a.third ? "a" : (def.b.third ? "b" : null);
+    if (thirdSide && slotTally[sid]) {
+      const tt = thirdSide === "a" ? A : B;
+      slotTally[sid][tt] = (slotTally[sid][tt] || 0) + 1;
+    }
     winners[sid] = rand() < M.winProb(A, B) ? A : B;
     tally[A].r32++; tally[B].r32++;
   }
@@ -226,7 +240,7 @@ function modalScenario(M, TD, groupTeams) {
   }
 
   const qualGroups = M.GROUPS
-    .map(g => ({ g, p: TD[third[g]].p3 }))
+    .map(g => ({ g, p: TD[third[g]].p3q ?? TD[third[g]].p3 }))
     .sort((a, b) => b.p - a.p).slice(0, 8).map(e => e.g).sort();
   const thirdMap = M.THIRD_COMBOS[qualGroups.join("")];
   if (!thirdMap) throw new Error("No third-place combo for modal scenario");
@@ -281,9 +295,16 @@ async function main() {
   for (const g of M.GROUPS) if (groupTeams[g].length !== 4)
     throw new Error(`Group ${g} has ${groupTeams[g].length} teams`);
 
+  if (!teams.some(t => TD[t].p3q != null))
+    console.warn("WARNING: feed has no p3q — third-place qualification falling back to p3 (legacy data)");
+
   const tally = Object.fromEntries(teams.map(t =>
     [t, { r32: 0, r16: 0, qf: 0, sf: 0, f: 0, win: 0, runnerUp: 0, third: 0 }]));
-  for (let i = 0; i < SIMS; i++) simulateOnce(M, TD, groupTeams, tally);
+  // third-place R32 slot tally: { r32_id: { team: count } } for slots that take a third
+  const thirdSlotIds = Object.entries(M.R32_SLOT_DEFS)
+    .filter(([, d]) => d.a.third || d.b.third).map(([sid]) => sid);
+  const slotTally = Object.fromEntries(thirdSlotIds.map(sid => [sid, {}]));
+  for (let i = 0; i < SIMS; i++) simulateOnce(M, TD, groupTeams, tally, slotTally);
 
   const modal = modalScenario(M, TD, groupTeams);
 
@@ -293,7 +314,7 @@ async function main() {
   const out = {
     generated: new Date().toISOString(),
     seed: SEED, sims: SIMS, source, source_updated: sourceUpdated,
-    method: "Monte Carlo over official bracket; groups from Sports4cast p1-p4 marginals; knockouts (incl. third-place playoff) from wall-chart Elo model; modal = single most-likely playthrough, matching the wall chart's autosim",
+    method: "Monte Carlo over official bracket; groups from Sports4cast p1-p4 marginals; third-place qualification weighted by Sports4cast p3q; knockout matches from wall-chart Elo model; modal = single most-likely playthrough, matching the wall chart's autosim",
     team_data: TD,
     elo_data: M.ELO ?? null,
     champion: sortedPctMap("win"),
@@ -305,6 +326,14 @@ async function main() {
       sf: pct(tally[t].sf), f: pct(tally[t].f), win: pct(tally[t].win),
       runnerUp: pct(tally[t].runnerUp), third: pct(tally[t].third),
     }])),
+    // R32 third-place slot distribution: { r32_id: { team: prob 0-1 } }, from the
+    // same p3q-weighted Monte Carlo as qualification, so the two stay aligned.
+    third_slot_dists: Object.fromEntries(Object.entries(slotTally).map(([sid, counts]) => [
+      sid,
+      Object.fromEntries(Object.entries(counts)
+        .map(([t, n]) => [t, +(n / SIMS).toFixed(4)])
+        .sort((a, b) => b[1] - a[1])),
+    ])),
   };
 
   fs.mkdirSync(path.dirname(outPath), { recursive: true });

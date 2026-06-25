@@ -807,6 +807,7 @@ fetch("data/daily-sim.json")
     if(d.champion) CHAMP_PCT = d.champion;
     if(d.team_data) TEAM_DATA = d.team_data;
     if(d.elo_data) ELO = d.elo_data;
+    if(d.third_slot_dists) THIRD_SLOT_DISTS = d.third_slot_dists;
   })
   .catch(()=>{})
   .finally(initPage);
@@ -914,7 +915,7 @@ let ELO = {"Spain":1441.6,"France":1436.4,"Germany":1407.3,"England":1406.7,"Net
 
 // Pre-computed 3rd-place team distributions for each variable R32 slot
 // (weighted average over all 495 FIFA qualifying combinations × TEAM_DATA p3)
-const THIRD_SLOT_DISTS = {
+let THIRD_SLOT_DISTS = {
   "r32_9": {"Uruguay":0.1231,"Saudi Arabia":0.1199,"Cape Verde":0.1101,"Curacao":0.1077,"Ecuador":0.1052,"Ivory Coast":0.1007,"Scotland":0.0709,"Morocco":0.0572,"Germany":0.0540,"Haiti":0.0511,"Spain":0.0388,"Brazil":0.0167},
   "r32_10":{"Iran":0.1486,"Egypt":0.1429,"New Zealand":0.1413,"Austria":0.1167,"Jordan":0.1132,"Algeria":0.1128,"Belgium":0.0924,"Argentina":0.0411,"Curacao":0.0154,"Ecuador":0.0150,"Ivory Coast":0.0144,"Norway":0.0087},
   "r32_11":{"Qatar":0.1821,"Bosnia-Herzegovina":0.1768,"Switzerland":0.1642,"Canada":0.1416,"Austria":0.0393,"Jordan":0.0381,"Algeria":0.0380,"Norway":0.0323,"Iraq":0.0316,"Senegal":0.0296,"Curacao":0.0231,"Ecuador":0.0225},
@@ -1487,7 +1488,7 @@ function toggleGroupAutofill(){
 function getThirdTeams(){
   return GROUPS
     .filter(g=>sel[g][3])
-    .map(g=>({group:g,team:sel[g][3],prob:TEAM_DATA[sel[g][3]].p3}));
+    .map(g=>{const td=TEAM_DATA[sel[g][3]];return {group:g,team:sel[g][3],prob:td.p3q??td.p3};});
 }
 
 function auto8(thirdTeams){
