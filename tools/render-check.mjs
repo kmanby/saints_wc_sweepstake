@@ -73,6 +73,18 @@ async function checkIndex({ sim, sweep }) {
   check("odds source labelled (official feed or model fallback)", /Sports4cast|sim model/.test(src), src.trim());
   check("no unmatched-team warning", !/unmatched/.test(src), src.trim());
 
+  // staleness banner is data-age driven: current official figures (today's, even
+  // from a same-day fixture) must NOT be flagged stale. Only assert on the normal
+  // same-day case so the check doesn't go brittle against an old committed file.
+  const staleBanner = doc.getElementById("staleBanner");
+  const simDate = (sim.source_updated || sim.generated || "").slice(0, 10);
+  const now = new Date(); now.setHours(0, 0, 0, 0);
+  const todayLocal = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  if (sim.source !== "sim-fallback" && simDate && simDate >= todayLocal) {
+    check("today's official data is not flagged stale", staleBanner?.hidden === true,
+      `banner: "${(staleBanner?.textContent || "").trim().slice(0, 70)}"`);
+  }
+
   // single gold bar; the modal podium holders (derived independently from
   // daily-sim.json + sweepstake.json) lead with a medal + £ beside the name
   check("every row has a single bar", rows.every((r) => r.querySelectorAll(".cbar").length === 1 && r.querySelector(".cfill")));

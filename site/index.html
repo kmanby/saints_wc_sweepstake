@@ -603,22 +603,33 @@
     }
   }
 
-  // Source-driven banner. The sim records which of three states produced the
-  // numbers below — the live official feed, the last-good official fixture, or
-  // our own model when the feed has been dark for days — so surface that honestly.
+  // Staleness banner, driven by the DATA's age — not by whether this particular
+  // run did a live pull. Today's official figures are current whether they came
+  // from a live fetch or a same-day saved fixture, so they get no banner. `when`
+  // is the data's date (source_updated); empty/`sim-fallback` means no official
+  // data at all → loud "our own model" warning.
   function setSourceBanner(source, when){
     const b = document.getElementById("staleBanner");
     if(!b) return;
-    if(source === "sports4cast-live"){ b.hidden = true; return; }
-    b.hidden = false;
-    if(source === "fixture-fallback"){
-      b.classList.add("soft");
-      b.innerHTML = "&#9432; The live odds feed hasn&rsquo;t refreshed today &mdash; showing the "
-        + "<strong>last official Sports4cast figures</strong>" + (when ? " from " + when : "") + ".";
-    } else {
+    if(source === "sim-fallback" || !when){
+      b.hidden = false;
       b.classList.remove("soft");
       b.innerHTML = "&#9888; Live odds feed unavailable &mdash; the numbers below come from our "
         + "<strong>own model</strong>, not the official Sports4cast sim, and may differ from the wall chart.";
+      return;
+    }
+    // Official figures. The feed refreshes overnight, so today's or yesterday's
+    // data is normal — only flag a genuine multi-day lag.
+    const dataDate = new Date(when + "T00:00:00");
+    const midnight = new Date(); midnight.setHours(0,0,0,0);
+    const daysOld = Math.round((midnight - dataDate) / 86400000);
+    if(daysOld >= 2){
+      b.hidden = false;
+      b.classList.add("soft");
+      b.innerHTML = "&#9432; The live odds feed hasn&rsquo;t refreshed in a few days &mdash; showing the "
+        + "<strong>last official Sports4cast figures</strong> from " + when + ".";
+    } else {
+      b.hidden = true;
     }
   }
 
@@ -663,13 +674,13 @@
         runnerUp: NAME2CODE[d.modal.runnerUp],
         third:    NAME2CODE[d.modal.third],
       } : null;
-      // champion/runner-up are the official feed (live or last-good fixture); only
-      // the deep fallback is our own model — label it honestly either way.
+      // champion/runner-up are the official feed (live or same-day fixture); only
+      // the deep fallback is our own model. The date carries the provenance, so the
+      // label reads the same whether today's official data came live or from cache.
       const label = d.source === "sim-fallback"
         ? `Our ${(d.sims||0).toLocaleString()}-sim model &middot; ${when}`
         : `Official Sports4cast ${(d.source_sims||10000).toLocaleString()}-sim`
-          + (when ? ` &middot; ${when}` : "")
-          + (d.source === "fixture-fallback" ? " &middot; last good" : "");
+          + (when ? ` &middot; ${when}` : "");
       renderOddsChart(live, label, unmatched, modal);
     })
     .catch(()=> setSourceBanner("sim-fallback"));
