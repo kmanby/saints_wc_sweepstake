@@ -1220,9 +1220,64 @@ function groupTeams(g){
 function isGroupDone(g){ return [1,2,3,4].every(p=>sel[g][p]); }
 function doneCount(){ return GROUPS.filter(isGroupDone).length; }
 
+// Effective position locks for a group: user selections (sel[g]) plus
+// auto-locks for any team certain (rounds to 100%) of a position. {team: pos}.
+function groupLocks(g){
+  const m = {}, slot = {};
+  for(const [p,t] of Object.entries(sel[g])){ const pos=parseInt(p); m[t]=pos; slot[pos]=t; }
+  for(const t of groupTeams(g)){
+    if(m[t]) continue;
+    for(let pos=1; pos<=4; pos++){
+      if(Math.round(TEAM_DATA[t]["p"+pos]||0)>=100 && !slot[pos]){ m[t]=pos; slot[pos]=t; break; }
+    }
+  }
+  return m;
+}
+
+// Order a group's four teams into finishing slots 1→4. Locked teams take their
+// exact slot; the rest fill remaining slots greedily — for each open slot take
+// the unlocked team most likely to finish there (sort by 1st, then 2nd, 3rd, 4th).
+function orderedGroup(g, lockedMap){
+  lockedMap = lockedMap || {};
+  const teams = groupTeams(g);
+  const slotTeam = {};
+  for(const t of teams){ if(lockedMap[t]) slotTeam[lockedMap[t]] = t; }
+  const pool = teams.filter(t=>!lockedMap[t]);
+  const out = [];
+  for(let pos=1; pos<=4; pos++){
+    if(slotTeam[pos]){ out.push(slotTeam[pos]); continue; }
+    let bestIdx=-1, bestP=-1;
+    pool.forEach((t,idx)=>{ const p=TEAM_DATA[t]["p"+pos]||0; if(p>bestP){ bestP=p; bestIdx=idx; } });
+    if(bestIdx>=0){ out.push(pool[bestIdx]); pool.splice(bestIdx,1); }
+  }
+  pool.forEach(t=>out.push(t)); // safety: append any leftover
+  return out;
+}
+
 // ─── RENDER GROUPS ───────────────────────────────────────────────────
 
+// Persist auto-locks (teams certain of a position) into sel, so they behave
+// like a user pick everywhere downstream — including the R32 bracket, which
+// reads group placements straight from sel.
+function applyAutoLocks(){
+  if(!TEAM_DATA) return;
+  GROUPS.forEach(g=>{
+    const placed = new Set(Object.values(sel[g]));
+    const taken  = {};
+    for(const [p,t] of Object.entries(sel[g])) taken[parseInt(p)] = t;
+    for(const t of groupTeams(g)){
+      if(placed.has(t)) continue;
+      for(let pos=1; pos<=4; pos++){
+        if(Math.round(TEAM_DATA[t]["p"+pos]||0)>=100 && !taken[pos]){
+          sel[g][pos]=t; taken[pos]=t; placed.add(t); break;
+        }
+      }
+    }
+  });
+}
+
 function renderGroups(){
+  applyAutoLocks();
   if(!groupCollapseInit && window.innerWidth <= 600){
     GROUPS.forEach(g => collapsedGroups.add(g));
     groupCollapseInit = true;
@@ -1240,15 +1295,8 @@ function renderGroups(){
 }
 
 function buildGroupCard(g){
-  const teams = groupTeams(g);
-  const lockedMap = {};
-  for(const [p,t] of Object.entries(sel[g])) lockedMap[t]=parseInt(p);
-
-  const sorted=[...teams].sort((a,b)=>{
-    const la=lockedMap[a]||99, lb=lockedMap[b]||99;
-    if(la!==lb) return la-lb;
-    return TEAM_DATA[b].p1-TEAM_DATA[a].p1;
-  });
+  const lockedMap = groupLocks(g);
+  const sorted = orderedGroup(g, lockedMap);
 
   const done = isGroupDone(g);
   const card = document.createElement("div");
@@ -1413,7 +1461,7 @@ let grpAutoFillActive = false;
 
 function autoFillGroups(){
   GROUPS.forEach(g=>{
-    const ranked=[...groupTeams(g)].sort((a,b)=>TEAM_DATA[b].p1-TEAM_DATA[a].p1);
+    const ranked=orderedGroup(g);
     ranked.forEach((team,i)=>{ sel[g][i+1]=team; });
   });
   onGroupChange();

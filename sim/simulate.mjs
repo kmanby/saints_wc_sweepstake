@@ -208,14 +208,21 @@ function simulateOnce(M, TD, groupTeams, tally) {
 }
 
 // ---------- the single most-likely playthrough ----------
-// Mirrors the wall chart's autosim exactly: groups ranked by p1, best 8
-// thirds by p3, every knockout match (and the playoff) to the favourite —
-// so the index chart's "simulated draw" matches the pre-filled wall chart.
+// Mirrors the wall chart's autosim exactly: each slot filled by its own
+// marginal (1st by p1, 2nd by p2, 3rd by p3 among the teams not yet placed),
+// best 8 thirds by p3, every knockout match (and the playoff) to the
+// favourite — so the index chart's "simulated draw" matches the pre-filled
+// wall chart.
 function modalScenario(M, TD, groupTeams) {
   const first = {}, second = {}, third = {};
   for (const g of M.GROUPS) {
-    const ranked = [...groupTeams[g]].sort((a, b) => TD[b].p1 - TD[a].p1);
-    first[g] = ranked[0]; second[g] = ranked[1]; third[g] = ranked[2];
+    const pool = [...groupTeams[g]];
+    const take = key => {
+      let bi = 0, bp = -1;
+      pool.forEach((t, i) => { const p = TD[t][key] || 0; if (p > bp) { bp = p; bi = i; } });
+      return pool.splice(bi, 1)[0];
+    };
+    first[g] = take("p1"); second[g] = take("p2"); third[g] = take("p3");
   }
 
   const qualGroups = M.GROUPS
