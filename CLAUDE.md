@@ -116,27 +116,40 @@ group stage finishes; do not simulate it.
    styling to the chart.
 
 ## Daily sim subsystem
-- `sim/simulate.mjs` runs a deterministic Monte Carlo of the whole tournament
-  (default 10,000 sims, seed = today's date) and writes
-  `site/data/daily-sim.json`. `.github/workflows/daily-sim.yml` runs it
-  ~05:14 UK daily (deliberately early — GitHub often dispatches scheduled
-  runs hours late) and commits the result, which redeploys Netlify.
+- `sim/simulate.mjs` builds the daily odds (default 10,000 sims, seed =
+  today's date) and writes `site/data/daily-sim.json`. With an official feed it
+  takes the headline numbers straight from Sports4cast and does NOT simulate the
+  tournament; the full Monte Carlo runs only in deep fallback (see below).
+  `.github/workflows/daily-sim.yml` runs it ~05:14 UK daily (deliberately early
+  — GitHub often dispatches scheduled runs hours late) and commits the result,
+  which redeploys Netlify.
 - The sim EXTRACTS its model from site/wallchart.html at runtime (vm + DOM
   stubs) — Elo, winProb, co-host boost, bracket slots, third-place allocation.
   One source of truth: never duplicate those tables into the sim.
-- Group orders are sampled from Sports4cast's daily p1–p4 marginals (live GCS
-  JSON, embedded snapshot as fallback); qualifying thirds are Elo-weighted;
-  knockout advancement uses winProb directly (no draws). The two losing
-  semifinalists meet in a third-place playoff. Documented approximations —
-  refine, don't silently change.
+- With a feed present (the normal case): champion, runner-up and every exit
+  stage come straight from the feed's `chances.*`; the predicted bracket and the
+  `modal` podium advance by the feed's `chances.win` at every knockout (so the
+  champion IS the feed's predicted winner, not the highest-Elo team). The ONLY
+  match the sim resolves itself is the third-place playoff between the two losing
+  semifinalists (our one-match Elo model — the feed gives no head-to-head for
+  it). Group orders / qualifying thirds (weighted by p3q) are still sampled from
+  the daily p1–p4/p3q marginals, but ONLY to project the R32 third-slot hover
+  distribution (raked back to p3q) — no knockout is simulated.
+- Deep fallback ONLY (feed unreachable >3 days, live GCS JSON → saved fixture →
+  here): a full Monte Carlo off the wall chart's Elo snapshot — group orders from
+  p1–p4, knockouts from winProb (no draws). Documented approximations — refine,
+  don't silently change.
 - daily-sim.json records per team: `champion`, `runnerUp`, `third` (each map
   sums to 100 — never renormalise) plus `stages` (incl. runnerUp/third) and
   `modal` = {champion, runnerUp, third} of the single most-likely playthrough.
-- `modalScenario()` in the sim deliberately REPLICATES the wall chart's
-  autosim (groups by p1, best-8 thirds by p3, favourite wins every KO match)
-  so the pre-filled wall chart and the index chart's "simulated draw" bar
-  always tell the same story. If the autosim logic in wallchart.html changes,
-  change modalScenario to match.
+- `modalScenario()` in the sim deliberately REPLICATES the wall chart's autosim
+  (groups by p1, best-8 thirds by p3q, the feed's higher-`chances.win` team wins
+  every KO match; only the third-place playoff goes to the Elo favourite) so the
+  pre-filled wall chart and the index chart's "simulated draw" bar always tell
+  the same story. The shared comparator lives in `feedFavourite` (sim) /
+  `feedPairProb` (wallchart.html), with identical tie-handling; Elo is only the
+  tie / no-feed fallback. If the autosim logic in either file changes, change the
+  other to match.
 - index.html odds-chart source priority: daily-sim.json → wall-chart
   postMessage champion dist → hard-coded snapshot. Medals + £ render only
   when `modal` is present (fallback sources draw the bar alone, no podium).
