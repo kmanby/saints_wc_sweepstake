@@ -128,13 +128,22 @@ group stage finishes; do not simulate it.
   One source of truth: never duplicate those tables into the sim.
 - With a feed present (the normal case): champion, runner-up and every exit
   stage come straight from the feed's `chances.*`; the predicted bracket and the
-  `modal` podium advance by the feed's `chances.win` at every knockout (so the
-  champion IS the feed's predicted winner, not the highest-Elo team). The ONLY
-  match the sim resolves itself is the third-place playoff between the two losing
-  semifinalists (our one-match Elo model — the feed gives no head-to-head for
-  it). Group orders / qualifying thirds (weighted by p3q) are still sampled from
-  the daily p1–p4/p3q marginals, but ONLY to project the R32 third-slot hover
-  distribution (raked back to p3q) — no knockout is simulated.
+  `modal` podium advance each knockout by the feed's **reach-next-round**
+  probability — the chance of winning THAT match, which Sports4cast itself shows.
+  It's read off the chances exit-distribution (group/r32/r16/qf/sf/final/win sum
+  to 100): an R32 winner's strength is `r16+qf+sf+final+win` (reach the R16), an
+  R16 winner's is `qf+sf+final+win`, … and the final's is `win`. Do NOT use
+  `chances.win` for a match — that's the whole-tournament odds and makes every
+  favourite look near-certain (Argentina 100% over Cape Verde vs the feed's ~89%).
+  The champion is still the feed's predicted winner (the final's strength IS
+  `chances.win`). The ONLY match the sim resolves itself is the third-place
+  playoff between the two losing semifinalists (our one-match Elo model — the feed
+  gives no head-to-head for it). Group orders / qualifying thirds (weighted by
+  p3q) are still sampled from the daily p1–p4/p3q marginals, but ONLY to project
+  the R32 third-slot hover distribution (raked back to p3q) — no knockout is
+  simulated. NB the feed exposes no per-match head-to-head, so these reconstructed
+  paths/percentages won't exactly equal Sports4cast's joint sim — close matches
+  can flip and even ties differ by a few points.
 - Deep fallback ONLY (feed unreachable >3 days, live GCS JSON → saved fixture →
   here): a full Monte Carlo off the wall chart's Elo snapshot — group orders from
   p1–p4, knockouts from winProb (no draws). Documented approximations — refine,
@@ -143,13 +152,13 @@ group stage finishes; do not simulate it.
   sums to 100 — never renormalise) plus `stages` (incl. runnerUp/third) and
   `modal` = {champion, runnerUp, third} of the single most-likely playthrough.
 - `modalScenario()` in the sim deliberately REPLICATES the wall chart's autosim
-  (groups by p1, best-8 thirds by p3q, the feed's higher-`chances.win` team wins
-  every KO match; only the third-place playoff goes to the Elo favourite) so the
+  (groups by p1, best-8 thirds by p3q, the higher reach-next-round team wins every
+  KO match; only the third-place playoff goes to the Elo favourite) so the
   pre-filled wall chart and the index chart's "simulated draw" bar always tell
-  the same story. The shared comparator lives in `feedFavourite` (sim) /
-  `feedPairProb` (wallchart.html), with identical tie-handling; Elo is only the
-  tie / no-feed fallback. If the autosim logic in either file changes, change the
-  other to match.
+  the same story. The shared reach-next-round strength lives in `feedReachStrength`
+  + `feedFavourite` (sim) / `feedReachStrength` + `feedPairProb` (wallchart.html),
+  with identical per-stage formulas and tie-handling; Elo is only the tie / no-feed
+  fallback. If the autosim logic in either file changes, change the other to match.
 - index.html odds-chart source priority: daily-sim.json → wall-chart
   postMessage champion dist → hard-coded snapshot. Medals + £ render only
   when `modal` is present (fallback sources draw the bar alone, no podium).

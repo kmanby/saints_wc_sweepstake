@@ -282,16 +282,36 @@ function modalBracket(M, TD, groupTeams) {
   return { resolveSide: makeResolveSide(first, second, third, thirdMap) };
 }
 
-// Predicted-bracket winner from the feed: advance whoever the feed gives a
-// better chance of WINNING THE TOURNAMENT (chances.win), so the modal champion
-// IS the feed's predicted winner — matching the wall chart's autosim (which uses
-// the same chances.win comparator). Falls back to the Elo win prob only when
-// chances are absent (deep fallback / legacy data).
-function feedFavourite(M, TD, A, B) {
-  const ca = TD[A] && TD[A].chances ? TD[A].chances.win : null;
-  const cb = TD[B] && TD[B].chances ? TD[B].chances.win : null;
-  if (ca == null || cb == null || ca === cb) return M.winProb(A, B) >= 0.5 ? A : B;
-  return ca > cb ? A : B;
+const koRoundOf = id => id.startsWith("r32") ? "r32" : id.startsWith("r16") ? "r16"
+                     : id.startsWith("qf") ? "qf" : id.startsWith("sf") ? "sf" : "final";
+
+// Strength for a knockout round = the feed's probability the team REACHES THE NEXT
+// ROUND (wins this match), from the chances exit-distribution
+// (group/r32/r16/qf/sf/final/win sum to 100). Mirrors the wall chart's
+// feedReachStrength so the modal podium and the autosim stay identical. This is
+// the per-match quantity Sports4cast shows; chances.win (whole-tournament odds)
+// would make every favourite look near-certain.
+function feedReachStrength(TD, t, stage) {
+  const c = TD[t] && TD[t].chances;
+  if (!c) return null;
+  switch (stage) {
+    case "r32": return c.r16 + c.qf + c.sf + c.final + c.win;
+    case "r16": return c.qf + c.sf + c.final + c.win;
+    case "qf":  return c.sf + c.final + c.win;
+    case "sf":  return c.final + c.win;
+    case "final": return c.win;
+    default:    return c.win;
+  }
+}
+
+// Predicted-bracket winner from the feed at `stage`: the team more likely to reach
+// the next round advances, so the predicted bracket follows the feed (and the
+// champion is the feed's predicted winner). Elo fallback when the feed can't
+// separate them (missing chances / exact tie).
+function feedFavourite(M, TD, A, B, stage) {
+  const sa = feedReachStrength(TD, A, stage), sb = feedReachStrength(TD, B, stage);
+  if (sa == null || sb == null || sa === sb) return M.winProb(A, B) >= 0.5 ? A : B;
+  return sa > sb ? A : B;
 }
 
 // ---------- the single most-likely playthrough ----------
@@ -302,15 +322,15 @@ function feedFavourite(M, TD, A, B) {
 // head-to-head for it): it goes to the Elo favourite, our one-match model.
 function modalScenario(M, TD, groupTeams) {
   const { resolveSide } = modalBracket(M, TD, groupTeams);
-  const koWinner = (A, B) => feedFavourite(M, TD, A, B);
+  const koWinner = (A, B, stage) => feedFavourite(M, TD, A, B, stage);
   const playoffWinner = (A, B) => M.winProb(A, B) >= 0.5 ? A : B;
 
   const winners = {};
   for (const [sid, def] of Object.entries(M.R32_SLOT_DEFS)) {
-    winners[sid] = koWinner(resolveSide(def, "a"), resolveSide(def, "b"));
+    winners[sid] = koWinner(resolveSide(def, "a"), resolveSide(def, "b"), "r32");
   }
   for (const [mid, [fa, fb]] of Object.entries(M.FEEDERS)) {
-    winners[mid] = koWinner(winners[fa], winners[fb]);
+    winners[mid] = koWinner(winners[fa], winners[fb], koRoundOf(mid));
   }
   return podium(winners, M, playoffWinner);
 }
@@ -562,7 +582,7 @@ async function main() {
                    final: c.final, win: c.win, runnerUp: c.final, third: thirdByTeam[t] ?? 0 }];
     }));
     sourceSims = feed.num_sims ?? null;
-    method = "Champion, runner-up & every stage are the official Sports4cast 10,000-run figures (chances.*); the predicted bracket and modal podium follow the feed's chances.win at every knockout (so the champion is the feed's predicted winner); the third-place playoff is the only match we model ourselves — a one-match Elo tie between the two semi-final losers; modal = the single most-likely playthrough, matching the wall chart's autosim";
+    method = "Champion, runner-up & every stage are the official Sports4cast 10,000-run figures (chances.*); the predicted bracket and modal podium advance each knockout by the feed's reach-next-round probability (the per-match odds Sports4cast shows, derived from the chances exit-distribution), so the champion is the feed's predicted winner; the third-place playoff is the only match we model ourselves — a one-match Elo tie between the two semi-final losers; modal = the single most-likely playthrough, matching the wall chart's autosim";
   } else {
     champion = sortedPctMap("win");
     runnerUp = sortedPctMap("runnerUp");
