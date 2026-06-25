@@ -1,10 +1,17 @@
 #!/usr/bin/env node
-// Saints CC sweepstake — daily tournament Monte Carlo
+// Saints CC sweepstake — daily odds builder
 //
-// Simulates the full World Cup N times and writes site/data/daily-sim.json,
-// which drives the odds leaderboard (and anything else that wants stage
-// probabilities). Run by GitHub Action each morning, or manually:
+// Writes site/data/daily-sim.json, which drives the odds leaderboard and the
+// wall chart's champion %. Run by GitHub Action each morning, or manually:
 //   node sim/simulate.mjs [--sims 10000] [--seed 20260612]
+//
+// With an official Sports4cast feed (the normal case) we DON'T simulate the
+// tournament: champion, runner-up and every exit-stage chance come straight
+// from the feed's 10,000-run figures, and the predicted bracket (the modal
+// podium + the wall chart's autosim) advances whoever the feed gives a better
+// chance of WINNING THE CUP (chances.win) at every knockout. The ONLY match we
+// model ourselves is the third-place playoff between the two semi-final losers —
+// the feed carries no head-to-head for it — using the Elo win prob.
 //
 // Single source of truth: the model functions (Elo table, win probability,
 // co-host boost, bracket slots, third-place allocation table) are extracted
@@ -12,13 +19,12 @@
 // wall chart users see.
 //
 // Honest approximations:
-// - Group finishing orders are sampled sequentially from Sports4cast's daily
-//   p1–p4 marginals (1st from p1; 2nd from renormalised p2 among the rest...).
-//   This respects the marginals approximately, not the full joint.
-// - Which 8 of the 12 third-placed teams qualify is sampled weighted by Elo
-//   (stronger thirds more likely through), then routed to bracket slots with
-//   the official FIFA allocation table. Knockouts have no draws: winProb is
-//   the probability of advancing.
+// - Group finishing orders / qualifying thirds are sampled from the feed's daily
+//   p1–p4 and p3q marginals only to project the third-place R32 slot distribution
+//   (a hover aid), then raked back to p3q. No knockout matches are played.
+// - Deep fallback ONLY (feed unreachable for >3 days): a full Monte Carlo off the
+//   wall chart's Elo snapshot — groups from p1-p4, knockouts from winProb with no
+//   draws — so the page still has numbers when Sports4cast goes dark.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -225,6 +231,34 @@ function simulateOnce(M, TD, groupTeams, tally, slotTally) {
   tally[pod.third].third++;
 }
 
+// ---------- group-stage-only sampler (feed path) ----------
+// With an official feed we do NOT simulate the knockouts — paths come straight
+// from the feed (see modalScenario / the headline block in main). The one thing
+// the feed's per-team marginals don't directly give is the JOINT distribution of
+// which group's third lands in each R32 third-slot (it depends on which 8 thirds
+// qualify together, routed through the FIFA allocation table). So we sample only
+// the GROUP STAGE — finishing orders from p1-p4, the best-8 thirds from p3q —
+// and tally the slot each qualifying third fills. No matches are played here;
+// the result is later raked to the feed's own p3q. This keeps "only the
+// third-place playoff is simulated" true while preserving the slot hover aid.
+function sampleThirdSlots(M, TD, groupTeams, slotTally) {
+  const first = {}, second = {}, third = {};
+  for (const g of M.GROUPS) {
+    const [a, b, c] = sampleGroupOrder(groupTeams[g], TD);
+    first[g] = a; second[g] = b; third[g] = c;
+  }
+  const qualGroups = sampleQualifyingThirds(third, TD);
+  const thirdMap = M.THIRD_COMBOS[qualGroups.join("")];
+  if (!thirdMap) throw new Error("No third-place combo for " + qualGroups.join(""));
+  const resolveSide = makeResolveSide(first, second, third, thirdMap);
+  for (const [sid, def] of Object.entries(M.R32_SLOT_DEFS)) {
+    const thirdSide = def.a.third ? "a" : (def.b.third ? "b" : null);
+    if (!thirdSide || !slotTally[sid]) continue;
+    const tt = resolveSide(def, thirdSide);
+    if (tt) slotTally[sid][tt] = (slotTally[sid][tt] || 0) + 1;
+  }
+}
+
 // ---------- the single most-likely bracket (shared by modal podium + third model) ----------
 // Fills each slot by its own marginal: 1st by p1, 2nd by p2, 3rd by p3 among the
 // teams not yet placed; best 8 thirds by p3q. This IS the wall chart's autosim, so
@@ -248,22 +282,37 @@ function modalBracket(M, TD, groupTeams) {
   return { resolveSide: makeResolveSide(first, second, third, thirdMap) };
 }
 
+// Predicted-bracket winner from the feed: advance whoever the feed gives a
+// better chance of WINNING THE TOURNAMENT (chances.win), so the modal champion
+// IS the feed's predicted winner — matching the wall chart's autosim (which uses
+// the same chances.win comparator). Falls back to the Elo win prob only when
+// chances are absent (deep fallback / legacy data).
+function feedFavourite(M, TD, A, B) {
+  const ca = TD[A] && TD[A].chances ? TD[A].chances.win : null;
+  const cb = TD[B] && TD[B].chances ? TD[B].chances.win : null;
+  if (ca == null || cb == null || ca === cb) return M.winProb(A, B) >= 0.5 ? A : B;
+  return ca > cb ? A : B;
+}
+
 // ---------- the single most-likely playthrough ----------
-// Every knockout match (and the playoff) to the favourite, over the modal
-// bracket — so the index chart's "simulated draw" matches the pre-filled wall
-// chart. (Unchanged in behaviour; the slot-filling now lives in modalBracket.)
+// Every knockout match goes to the feed's predicted winner (feedFavourite) over
+// the modal bracket — so the index chart's "simulated draw" matches the
+// pre-filled wall chart, and both name the feed's champion. The third-place
+// playoff is the ONLY match we still decide ourselves (the feed gives no
+// head-to-head for it): it goes to the Elo favourite, our one-match model.
 function modalScenario(M, TD, groupTeams) {
   const { resolveSide } = modalBracket(M, TD, groupTeams);
-  const favourite = (A, B) => M.winProb(A, B) >= 0.5 ? A : B;
+  const koWinner = (A, B) => feedFavourite(M, TD, A, B);
+  const playoffWinner = (A, B) => M.winProb(A, B) >= 0.5 ? A : B;
 
   const winners = {};
   for (const [sid, def] of Object.entries(M.R32_SLOT_DEFS)) {
-    winners[sid] = favourite(resolveSide(def, "a"), resolveSide(def, "b"));
+    winners[sid] = koWinner(resolveSide(def, "a"), resolveSide(def, "b"));
   }
   for (const [mid, [fa, fb]] of Object.entries(M.FEEDERS)) {
-    winners[mid] = favourite(winners[fa], winners[fb]);
+    winners[mid] = koWinner(winners[fa], winners[fb]);
   }
-  return podium(winners, M, favourite);
+  return podium(winners, M, playoffWinner);
 }
 
 // Partition the R32 slots into the tournament's two halves — the two semifinals
@@ -471,7 +520,15 @@ async function main() {
   const thirdSlotIds = Object.entries(M.R32_SLOT_DEFS)
     .filter(([, d]) => d.a.third || d.b.third).map(([sid]) => sid);
   const slotTally = Object.fromEntries(thirdSlotIds.map(sid => [sid, {}]));
-  for (let i = 0; i < SIMS; i++) simulateOnce(M, TD, groupTeams, tally, slotTally);
+  // With a feed, only the GROUP STAGE is sampled (for the third-slot hover dist);
+  // champion/runner-up/stages come from the feed and the predicted bracket from
+  // chances.win, so the knockouts are never simulated. The full Monte Carlo runs
+  // ONLY in deep fallback, where the Elo model is all we have.
+  if (feed) {
+    for (let i = 0; i < SIMS; i++) sampleThirdSlots(M, TD, groupTeams, slotTally);
+  } else {
+    for (let i = 0; i < SIMS; i++) simulateOnce(M, TD, groupTeams, tally, slotTally);
+  }
 
   const modal = modalScenario(M, TD, groupTeams);
 
@@ -505,7 +562,7 @@ async function main() {
                    final: c.final, win: c.win, runnerUp: c.final, third: thirdByTeam[t] ?? 0 }];
     }));
     sourceSims = feed.num_sims ?? null;
-    method = "Champion & runner-up are the official Sports4cast 10,000-run figures (chances.win / chances.final); third-place playoff is our one-match Elo model over the two semi-final losers; modal = single most-likely playthrough, matching the wall chart's autosim";
+    method = "Champion, runner-up & every stage are the official Sports4cast 10,000-run figures (chances.*); the predicted bracket and modal podium follow the feed's chances.win at every knockout (so the champion is the feed's predicted winner); the third-place playoff is the only match we model ourselves — a one-match Elo tie between the two semi-final losers; modal = the single most-likely playthrough, matching the wall chart's autosim";
   } else {
     champion = sortedPctMap("win");
     runnerUp = sortedPctMap("runnerUp");

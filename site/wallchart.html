@@ -997,6 +997,30 @@ function winProb(a, b){
   return eloWinProb(effectiveElo(a), effectiveElo(b));
 }
 
+// ─── FEED-DRIVEN PREDICTION ─────────────────────────────────────────
+// The predicted bracket (paths, auto-fill, champion box) must mirror the
+// Sports4cast feed, NOT our Elo model — otherwise the highest-Elo team
+// (currently Spain) is crowned instead of the feed's predicted winner
+// (highest chances.win). At every knockout we advance whoever the feed gives a
+// better chance of WINNING THE TOURNAMENT. Elo (winProb) survives only as a
+// pre-feed fallback and for the sim's third-place playoff.
+function feedStrength(team){
+  const c = TEAM_DATA && TEAM_DATA[team] && TEAM_DATA[team].chances;
+  return c && typeof c.win === "number" ? c.win : null;
+}
+// Pairwise predicted-winner probability for one knockout tie, from the feed.
+// Bradley–Terry on chances.win keeps the engine probabilistic (hover paths +
+// match-card %), while its argmax is always the higher-chances.win team — so the
+// auto-filled bracket's champion IS the feed's predicted winner. Falls back to
+// the Elo win prob when the feed has no usable chances for either side.
+function feedPairProb(a, b){
+  const sa = feedStrength(a), sb = feedStrength(b);
+  // Elo only when the feed can't separate them (missing/both-zero/exact tie) —
+  // mirrors the sim's feedFavourite so the autosim and modal podium never differ.
+  if(sa === null || sb === null || sa + sb <= 0 || sa === sb) return winProb(a, b);
+  return sa / (sa + sb);
+}
+
 // ─── HOVER PROJECTION ENGINE ─────────────────────────────────────────────
 
 function fmtPct(p){ const v=p*100; return (v<10?v.toFixed(1):v.toFixed(0))+"%"; }
@@ -1056,7 +1080,7 @@ function _matchWinnerDist(distA, distB){
     if(!pA) continue;
     for(const [tB,pB] of Object.entries(distB)){
       if(!pB||tA===tB) continue;
-      const p=winProb(tA,tB);
+      const p=feedPairProb(tA,tB);
       result[tA]=(result[tA]||0)+pA*pB*p;
       result[tB]=(result[tB]||0)+pA*pB*(1-p);
     }
@@ -2076,7 +2100,7 @@ function buildMatchCard(m, isR32, compact=false){
   }
 
   let pA=null,pB=null;
-  if(a&&b){pA=winProb(a,b);pB=1-pA;}
+  if(a&&b){pA=feedPairProb(a,b);pB=1-pA;}
 
   [a,b].forEach((team,idx)=>{
     const row=document.createElement("div");
