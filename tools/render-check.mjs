@@ -70,7 +70,7 @@ async function checkIndex({ sim, sweep }) {
   check("odds chart rendered (33 people)", rows.length === 33, `${rows.length} rows`);
 
   const src = doc.getElementById("oddsSrc")?.textContent || "";
-  check("odds source is the daily sim", /Monte Carlo/.test(src), src.trim());
+  check("odds source labelled (official feed or model fallback)", /Sports4cast|sim model/.test(src), src.trim());
   check("no unmatched-team warning", !/unmatched/.test(src), src.trim());
 
   // single gold bar; the modal podium holders (derived independently from
@@ -97,6 +97,13 @@ async function checkIndex({ sim, sweep }) {
   const rest = rows.slice(3);
   const sums = rest.map((r) => parseFloat(r.querySelector(".cbar .cval").textContent) || 0);
   check("rest sorted by bar value desc", sums.every((v, i) => i === 0 || sums[i - 1] >= v));
+
+  // provisional wooden-spoon watch: visible, names today's pick, flagged not-final
+  const spoonEl = doc.getElementById("spoonWatch");
+  const spoonPick = sim.spoon?.pick;
+  check("spoon watch shows the provisional pick", !!spoonPick && spoonEl && !spoonEl.hidden
+    && spoonEl.textContent.includes(spoonPick) && /provisional/i.test(spoonEl.textContent),
+    (spoonEl?.textContent || "").trim().slice(0, 90));
 
   // top-20 collapse with expand toggle
   const chartRows = doc.getElementById("chartRows");

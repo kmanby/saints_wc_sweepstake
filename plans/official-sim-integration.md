@@ -1,8 +1,11 @@
 # Plan — adopt the official Sports4cast sim, keep ours for the gaps
 
-Status: proposed (2026-06-25). Supersedes the "run our own Monte Carlo for
-everything" approach. Grounded in a verified live `wc2026.json` capture
-(`sim/fixtures/wc2026.json`).
+Status: **implemented (2026-06-25)**. Supersedes the "run our own Monte Carlo
+for everything" approach. Grounded in a verified live `wc2026.json` capture
+(`sim/fixtures/wc2026.json`). Champion/runner-up now come straight from the
+official feed; third place is our one-match playoff model; the full Monte Carlo
+is the deep fallback only. A provisional wooden-spoon *watch* shipped alongside
+(see §6). All steps below are done bar the post-27-Jun spoon lock-in.
 
 ## Verified facts (from the real payload)
 
@@ -145,21 +148,32 @@ rank them, take the bottom team, with `fifa_pts` as the FIFA-ranking tiebreak.
 Only **fair play (cards)** stays manual — and only matters in an exact
 points+GD+GF+GA tie, so it's a rare manual override, not a daily task.
 
-Optional now: a provisional "spoon watch" badge from live `pts` + `p4`, clearly
-flagged as not-final until 27 Jun (today's standout candidate: Haiti — 0 pts,
-p4 = 100% in Group C — but several 0-point teams are still separated only by
-GD/GF/GA we don't yet have).
+**Shipped (provisional):** `spoonWatch()` ranks all 48 by `pts` → `p4` →
+`fifa_pts` and writes a `spoon` block (`final:false`, `pick`, top-6 `candidates`,
+a not-final `note`) into `daily-sim.json`; `index.html` shows a dashed 🥄
+"Spoon watch" badge naming the holder + team, clearly flagged not-final. Today's
+pick: **Haiti** (0 pts, p4 = 100% in Group C, lowest FIFA points of the cellar) —
+but several 0-point teams are still separated only by GD/GF/GA we don't yet have,
+which is exactly why it stays a *watch* until the group stage locks it (step 7).
 
 ## Implementation order
 
-1. Wire the 3-state source + fallback chain into `simulate.mjs` (load fixture;
-   staleness check; `source` values; fix `source_updated`).
-2. Champion/runner-up straight from official `chances`.
-3. Third-place one-match model (§3) + half partition from `M.FEEDERS`.
-4. Emit richer `stages` from official exact-stage chances.
-5. `render-check` against `sim/fixtures/wc2026.json` (offline, no network).
-6. Pages: source banner; repoint index.html odds.
-7. (Later) spoon `fifa_pts` tiebreak.
+1. [done] Wire the 3-state source + fallback chain into `simulate.mjs`
+   (`loadOfficialFeed` live→fixture→model; `STALE_DAYS=3` staleness check;
+   `source` values; `source_updated = feed.generated`; auto-refresh the fixture
+   on every live run).
+2. [done] Champion/runner-up straight from official `chances.win` / `.final`.
+3. [done] Third-place one-match model (§3): `thirdPlaceModel` + `bracketHalves`
+   half partition walked from `M.FEEDERS`, halves assigned via the modal bracket.
+4. [done] Emit richer `stages` from official exact-stage chances (+ computed
+   third); added `source_sims` and a `spoon` block to `daily-sim.json`.
+5. [done] `render-check` passes offline against the fixture (fixture-fallback
+   path); source + spoon-watch assertions added.
+6. [done] Pages: 3-state source banner (hidden / soft / loud) + provisional
+   spoon-watch badge on `index.html`; repointed the dead `wc2026.json` Elo fetch
+   to `daily-sim.json`'s `elo_data`. Workflow commits the refreshed fixture.
+7. [later] Spoon lock-in after 27 Jun: replace the watch with the real
+   bottom-team computation (points → GD/GF/GA from results → `fifa_pts` tiebreak).
 
 ## Testing
 

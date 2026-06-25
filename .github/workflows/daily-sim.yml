@@ -24,16 +24,20 @@ jobs:
         run: |
           git config user.name "saints-sim-bot"
           git config user.email "actions@users.noreply.github.com"
-          # Keep the freshly-generated odds aside, then always re-apply them on
-          # top of the very latest main. This survives races (a merge or a
-          # concurrent run landing mid-job): each retry resets to origin/main,
-          # so the push is a clean fast-forward and an identical file is a no-op.
+          # Keep the freshly-generated odds AND the auto-refreshed official feed
+          # snapshot aside, then always re-apply them on top of the very latest
+          # main. This survives races (a merge or a concurrent run landing
+          # mid-job): each retry resets to origin/main, so the push is a clean
+          # fast-forward and an identical file is a no-op. The fixture is our
+          # rolling last-good backup for days the live feed is dark.
           cp site/data/daily-sim.json "$RUNNER_TEMP/daily-sim.json"
+          cp sim/fixtures/wc2026.json "$RUNNER_TEMP/wc2026.json"
           for i in 1 2 3 4 5; do
             git fetch origin main
             git reset --hard origin/main
             cp "$RUNNER_TEMP/daily-sim.json" site/data/daily-sim.json
-            git add site/data/daily-sim.json
+            cp "$RUNNER_TEMP/wc2026.json" sim/fixtures/wc2026.json
+            git add site/data/daily-sim.json sim/fixtures/wc2026.json
             git diff --staged --quiet && { echo "Odds already current on main; nothing to commit."; exit 0; }
             git commit -m "Daily sim $(date -u +%F)"
             git push && exit 0

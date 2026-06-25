@@ -128,6 +128,14 @@
   .chart-note{
     margin-top:1rem;text-align:center;font-style:italic;font-size:.8rem;opacity:.6;
   }
+  .spoon-watch{
+    max-width:760px;width:94vw;margin:1rem auto 0;text-align:center;
+    font-family:'Saira Condensed',sans-serif;font-size:.82rem;letter-spacing:.02em;
+    color:var(--cream);background:rgba(217,169,60,.07);
+    border:1px dashed var(--gold-soft);border-radius:8px;padding:.55rem .9rem;
+  }
+  .spoon-watch strong{color:var(--gold);text-transform:uppercase;letter-spacing:.08em}
+  .spoon-watch em{opacity:.7}
 
   /* ---------- fixtures / results rows ---------- */
   .frows{display:flex;flex-direction:column}
@@ -167,6 +175,9 @@
     font-family:'Saira Condensed',sans-serif;letter-spacing:.02em;
   }
   .stale-banner strong{color:#E07A6A;font-weight:700}
+  /* softer, non-alarming variant for the "last-good official figures" state */
+  .stale-banner.soft{background:rgba(217,169,60,.10);border-color:var(--gold-soft);color:var(--cream)}
+  .stale-banner.soft strong{color:var(--gold)}
 
   /* ---------- wall chart embed ---------- */
   .wallchart-sec{width:96vw;max-width:1180px;margin:0 auto 2.2rem;text-align:center}
@@ -295,7 +306,8 @@
   <span class="src" id="oddsSrc">Sports4cast model &middot; updated 12 Jun 2026 &middot; 10,000 sims</span></div>
   <div class="chart-rows collapsed" id="chartRows"></div>
   <div class="chart-more" id="chartMore"></div>
-  <div class="chart-note">Teams the model rates below 0.1% count as zero &mdash; sorry, Iraq. Refreshed every morning from the daily 10,000-run simulation; the &pound;5 wooden spoon joins once the group stage settles it.</div>
+  <div id="spoonWatch" class="spoon-watch" hidden></div>
+  <div class="chart-note">Teams the model rates below 0.1% count as zero &mdash; sorry, Iraq. Champion and runner-up odds are the official Sports4cast 10,000-run sim; the third-place playoff is our one-match model. The &pound;5 wooden spoon locks in once the group stage settles it.</div>
 </section>
 
 <section class="wallchart-sec">
@@ -591,12 +603,39 @@
     }
   }
 
-  // Show/hide the "odds are a stale snapshot" banner. The sim records whether
-  // it actually reached Sports4cast (source: "sports4cast-live") or fell back
-  // to the embedded pre-tournament snapshot — surface that honestly.
-  function setStale(isStale){
+  // Source-driven banner. The sim records which of three states produced the
+  // numbers below — the live official feed, the last-good official fixture, or
+  // our own model when the feed has been dark for days — so surface that honestly.
+  function setSourceBanner(source, when){
     const b = document.getElementById("staleBanner");
-    if(b) b.hidden = !isStale;
+    if(!b) return;
+    if(source === "sports4cast-live"){ b.hidden = true; return; }
+    b.hidden = false;
+    if(source === "fixture-fallback"){
+      b.classList.add("soft");
+      b.innerHTML = "&#9432; The live odds feed hasn&rsquo;t refreshed today &mdash; showing the "
+        + "<strong>last official Sports4cast figures</strong>" + (when ? " from " + when : "") + ".";
+    } else {
+      b.classList.remove("soft");
+      b.innerHTML = "&#9888; Live odds feed unavailable &mdash; the numbers below come from our "
+        + "<strong>own model</strong>, not the official Sports4cast sim, and may differ from the wall chart.";
+    }
+  }
+
+  // Provisional wooden-spoon watch. NOT a prediction — the spoon needs final
+  // points, then GD/GF/GA, then fair play, none of which the feed carries — so
+  // this only flags today's bottom-of-the-pile candidate, clearly marked not-final.
+  function renderSpoonWatch(spoon){
+    const el = document.getElementById("spoonWatch");
+    if(!el) return;
+    if(!spoon || !spoon.pick){ el.hidden = true; return; }
+    const team = spoon.pick, code = NAME2CODE[team];
+    const owner = code ? (OWNERS[code] || "").replace(/\s+\d+$/, "") : "";
+    el.hidden = false;
+    el.innerHTML = "&#129348; <strong>Spoon watch</strong> &middot; "
+      + (owner ? owner + "&rsquo;s " : "") + team
+      + " sits bottom of the pile right now &mdash; "
+      + "<em>provisional; the &pound;5 spoon locks in once the group stage ends</em>.";
   }
 
   renderOddsChart(WINPC_SNAPSHOT, "Sports4cast model &middot; 12 Jun 2026 snapshot");
@@ -606,8 +645,11 @@
   fetch("data/daily-sim.json")
     .then(r => r.ok ? r.json() : null)
     .then(d => {
-      if(!d || !d.champion){ setStale(true); return; }
-      setStale(d.source !== "sports4cast-live");
+      if(!d || !d.champion){ setSourceBanner("sim-fallback"); return; }
+      const when = d.source_updated ? d.source_updated.slice(0,10)
+                 : (d.generated ? d.generated.slice(0,10) : "");
+      setSourceBanner(d.source, when);
+      renderSpoonWatch(d.spoon);
       const live = {}, unmatched = [];
       for(const [team, v] of Object.entries(d.champion)){
         const code = NAME2CODE[team];
@@ -621,10 +663,16 @@
         runnerUp: NAME2CODE[d.modal.runnerUp],
         third:    NAME2CODE[d.modal.third],
       } : null;
-      const when = d.generated ? d.generated.slice(0,10) : "";
-      renderOddsChart(live, `Daily ${(d.sims||0).toLocaleString()}-sim Monte Carlo &middot; ${when}`, unmatched, modal);
+      // champion/runner-up are the official feed (live or last-good fixture); only
+      // the deep fallback is our own model — label it honestly either way.
+      const label = d.source === "sim-fallback"
+        ? `Our ${(d.sims||0).toLocaleString()}-sim model &middot; ${when}`
+        : `Official Sports4cast ${(d.source_sims||10000).toLocaleString()}-sim`
+          + (when ? ` &middot; ${when}` : "")
+          + (d.source === "fixture-fallback" ? " &middot; last good" : "");
+      renderOddsChart(live, label, unmatched, modal);
     })
-    .catch(()=> setStale(true));
+    .catch(()=> setSourceBanner("sim-fallback"));
 
   // live: the wall chart publishes its model's champion distribution on load
   window.addEventListener("message", e=>{
@@ -726,9 +774,11 @@
         .filter(m => m.score && usPacificDate(m._kickoff) === yesterday)
         .sort((a, b) => b._kickoff - a._kickoff);
 
-      return fetch("https://storage.googleapis.com/sports4cast-public/football/data/wc2026.json")
+      // Match-odds Elo: read it from our daily sim file (same-origin, already
+      // committed each morning), not the old public bucket — that path now 404s.
+      return fetch("data/daily-sim.json")
         .then(r => r.ok ? r.json() : null)
-        .then(wc => { if(wc && wc.elo_data) ELO_DATA = wc.elo_data; })
+        .then(sim => { if(sim && sim.elo_data) ELO_DATA = sim.elo_data; })
         .catch(() => {})   // odds are a nice-to-have; fixtures/results still render without them
         .then(() => {
           renderMatches("fixtureRows", todays, "odds");

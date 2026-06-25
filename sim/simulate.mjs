@@ -33,6 +33,10 @@ const SIMS = parseInt(arg("sims", "10000"), 10);
 const today = new Date().toISOString().slice(0, 10);
 const SEED = parseInt(arg("seed", today.replace(/-/g, "")), 10);
 const SIGNED_URL_ENDPOINT = "https://sports4cast.com/wp-json/football/v1/signed-urls?files[]=wc2026";
+// How many days old the saved fixture may be before we abandon official numbers
+// and fall all the way back to our own Monte Carlo. The daily action rewrites the
+// fixture on every successful live fetch, so this only bites after 3+ dead days.
+const STALE_DAYS = 3;
 
 // ---------- deterministic PRNG (identical everywhere, unlike Math.random) ----------
 function mulberry32(a) {
@@ -221,13 +225,11 @@ function simulateOnce(M, TD, groupTeams, tally, slotTally) {
   tally[pod.third].third++;
 }
 
-// ---------- the single most-likely playthrough ----------
-// Mirrors the wall chart's autosim exactly: each slot filled by its own
-// marginal (1st by p1, 2nd by p2, 3rd by p3 among the teams not yet placed),
-// best 8 thirds by p3, every knockout match (and the playoff) to the
-// favourite — so the index chart's "simulated draw" matches the pre-filled
-// wall chart.
-function modalScenario(M, TD, groupTeams) {
+// ---------- the single most-likely bracket (shared by modal podium + third model) ----------
+// Fills each slot by its own marginal: 1st by p1, 2nd by p2, 3rd by p3 among the
+// teams not yet placed; best 8 thirds by p3q. This IS the wall chart's autosim, so
+// anything built on it stays consistent with the pre-filled wall chart.
+function modalBracket(M, TD, groupTeams) {
   const first = {}, second = {}, third = {};
   for (const g of M.GROUPS) {
     const pool = [...groupTeams[g]];
@@ -238,14 +240,20 @@ function modalScenario(M, TD, groupTeams) {
     };
     first[g] = take("p1"); second[g] = take("p2"); third[g] = take("p3");
   }
-
   const qualGroups = M.GROUPS
     .map(g => ({ g, p: TD[third[g]].p3q ?? TD[third[g]].p3 }))
     .sort((a, b) => b.p - a.p).slice(0, 8).map(e => e.g).sort();
   const thirdMap = M.THIRD_COMBOS[qualGroups.join("")];
-  if (!thirdMap) throw new Error("No third-place combo for modal scenario");
+  if (!thirdMap) throw new Error("No third-place combo for modal bracket");
+  return { resolveSide: makeResolveSide(first, second, third, thirdMap) };
+}
 
-  const resolveSide = makeResolveSide(first, second, third, thirdMap);
+// ---------- the single most-likely playthrough ----------
+// Every knockout match (and the playoff) to the favourite, over the modal
+// bracket — so the index chart's "simulated draw" matches the pre-filled wall
+// chart. (Unchanged in behaviour; the slot-filling now lives in modalBracket.)
+function modalScenario(M, TD, groupTeams) {
+  const { resolveSide } = modalBracket(M, TD, groupTeams);
   const favourite = (A, B) => M.winProb(A, B) >= 0.5 ? A : B;
 
   const winners = {};
@@ -256,6 +264,52 @@ function modalScenario(M, TD, groupTeams) {
     winners[mid] = favourite(winners[fa], winners[fb]);
   }
   return podium(winners, M, favourite);
+}
+
+// Partition the R32 slots into the tournament's two halves — the two semifinals
+// feed the final from opposite halves — by walking the feeder tree to r32 leaves.
+function bracketHalves(M) {
+  const leaves = mid => M.R32_SLOT_DEFS[mid] ? [mid] : M.FEEDERS[mid].flatMap(leaves);
+  const half = {};
+  for (const sid of leaves("sf_1")) half[sid] = 1;
+  for (const sid of leaves("sf_2")) half[sid] = 2;
+  return half;
+}
+
+// ---------- third-place playoff: the lightweight one-match model ----------
+// The playoff is a single match between the two halves' semi-final losers, so we
+// don't sim a tournament for it. Using the official exit-at-semifinal marginals
+// (chances.sf) and the modal bracket to assign each team to a half:
+//   third[X] = sfhat[X] · Σ_{Y in opposite half} sfhat[Y] · winProb(X, Y)
+// where sfhat normalises chances.sf within a half. Each half yields exactly one
+// semi-final loser, so each half's sfhat sums to 1 and the result sums to 100
+// across teams (one playoff winner) by construction — never renormalise.
+// The half assignment is exact once the bracket locks; pre-knockout it follows the
+// modal bracket (a documented approximation that sharpens as groups settle).
+function thirdPlaceModel(M, TD, groupTeams, chancesSf) {
+  const half = bracketHalves(M);
+  const { resolveSide } = modalBracket(M, TD, groupTeams);
+  const teamHalf = {};
+  for (const [sid, def] of Object.entries(M.R32_SLOT_DEFS)) {
+    const A = resolveSide(def, "a"), B = resolveSide(def, "b");
+    if (A) teamHalf[A] = half[sid];   // both sides of an R32 tie sit in the same half
+    if (B) teamHalf[B] = half[sid];
+  }
+  const sfOf = t => Math.max(chancesSf[t] ?? 0, 0);
+  const H = { 1: [], 2: [] };
+  for (const [t, h] of Object.entries(teamHalf)) if (h) H[h].push(t);
+  const S = { 1: H[1].reduce((s, t) => s + sfOf(t), 0), 2: H[2].reduce((s, t) => s + sfOf(t), 0) };
+  const sfhat = t => { const h = teamHalf[t]; return h && S[h] > 0 ? sfOf(t) / S[h] : 0; };
+
+  const third = {};
+  for (const t of Object.keys(TD)) {
+    const h = teamHalf[t];
+    if (!h) { third[t] = 0; continue; }   // not in the modal R32 (group casualty) → 0
+    let p = 0;
+    for (const y of (h === 1 ? H[2] : H[1])) p += sfhat(y) * M.winProb(t, y);
+    third[t] = +(sfhat(t) * p * 100).toFixed(2);
+  }
+  return third;
 }
 
 // round a slot's {team: prob} to 4dp, drop zeros, sort descending
@@ -293,6 +347,83 @@ function rakeSlotDists(rawDists, TD) {
   return Object.fromEntries(slots.map(s => [s, sortRoundDist(m[s])]));
 }
 
+// ---------- official feed: live → saved fixture → our own model ----------
+// A usable feed is the official 10k-run payload with chances for all 48 teams.
+function feedUsable(d) {
+  if (!d || !d.team_data) return false;
+  const teams = Object.keys(d.team_data);
+  return teams.length === 48 && teams.every(t => d.team_data[t] && d.team_data[t].chances);
+}
+
+// Whole days between the feed's `generated` date and the run date (≥0 = stale).
+function daysOld(generated, todayStr) {
+  if (!generated) return Infinity;
+  const g = Date.parse(String(generated).slice(0, 10) + "T00:00:00Z");
+  const t = Date.parse(todayStr + "T00:00:00Z");
+  return (Number.isNaN(g) || Number.isNaN(t)) ? Infinity : Math.round((t - g) / 86400000);
+}
+
+// Three-state source chain. "Missing" deliberately includes *stale*: their feed
+// silently rotted once before, so a yesterday-dated payload is not "live".
+async function loadOfficialFeed(fixturePath, todayStr) {
+  // 1. live — two-step signed URL (60s-lived), same as the widget uses
+  try {
+    const sigR = await fetch(SIGNED_URL_ENDPOINT, { signal: AbortSignal.timeout(10000) });
+    if (sigR.ok) {
+      const signedUrl = (await sigR.json()).wc2026;
+      if (signedUrl) {
+        const r = await fetch(signedUrl, { signal: AbortSignal.timeout(15000) });
+        if (r.ok) {
+          const raw = await r.text();
+          const d = JSON.parse(raw);
+          if (feedUsable(d) && daysOld(d.generated, todayStr) <= 0)
+            return { feed: d, source: "sports4cast-live", raw };
+          console.warn("Live feed reached but stale/incomplete — trying the saved fixture");
+        }
+      }
+    }
+  } catch (e) { console.warn("Live feed unreachable (" + e.message + ") — trying the saved fixture"); }
+
+  // 2. fixture — the last good official payload (rewritten on every live run)
+  try {
+    const raw = fs.readFileSync(fixturePath, "utf8");
+    const d = JSON.parse(raw);
+    const age = daysOld(d.generated, todayStr);
+    if (feedUsable(d) && age <= STALE_DAYS)
+      return { feed: d, source: "fixture-fallback", raw: null };
+    console.warn(`Saved fixture is ${age} day(s) old (> ${STALE_DAYS}) or unusable — using our own model`);
+  } catch { console.warn("No usable saved fixture — using our own model"); }
+
+  // 3. our own Monte Carlo off the wall-chart snapshot
+  return { feed: null, source: "sim-fallback", raw: null };
+}
+
+// ---------- provisional wooden-spoon watch ----------
+// The £5 spoon CANNOT be forecast: it needs points → GD → GF → GA → fair play →
+// FIFA ranking, and the feed carries no scorelines or cards. This is a live
+// *watch* only — ordered by what we do have (points, then likelihood of finishing
+// bottom via p4, then FIFA points) — flagged not-final until the group stage ends.
+function spoonWatch(feed, todayStr) {
+  const td = feed.team_data, fifa = feed.fifa_pts || {};
+  const ranked = Object.keys(td).map(t => ({
+    team: t,
+    group: td[t].group ?? null,
+    pts: td[t].pts ?? null,
+    p4: td[t].p4 ?? 0,
+    fifa_pts: fifa[t] ?? null,
+  })).sort((a, b) =>
+    (a.pts ?? 99) - (b.pts ?? 99) ||           // fewest points
+    (b.p4 ?? 0) - (a.p4 ?? 0) ||               // most locked into last place
+    (a.fifa_pts ?? 9999) - (b.fifa_pts ?? 9999)); // weakest by FIFA points
+  return {
+    final: false,
+    as_of: todayStr,
+    pick: ranked[0]?.team ?? null,
+    candidates: ranked.slice(0, 6),
+    note: "Provisional. The £5 wooden spoon is decided by points, then goal difference, goals for/against, fair play and finally FIFA ranking — the feed only carries points and FIFA points, so this orders by points, then chance of finishing bottom (p4), then FIFA points. Locked from real results once the group stage ends (~27 Jun).",
+  };
+}
+
 // ---------- main ----------
 async function main() {
   const repoRoot = process.cwd();
@@ -301,27 +432,21 @@ async function main() {
 
   const M = extractModel(wallchartPath);
 
-  // live daily data, with the wall chart's embedded snapshot as fallback
-  // Two-step: get a 60-second signed URL, then fetch the actual data
-  let TD = M.TEAM_DATA_FALLBACK, source = "fallback-snapshot", sourceUpdated = null;
-  try {
-    const sigR = await fetch(SIGNED_URL_ENDPOINT, { signal: AbortSignal.timeout(10000) });
-    if (sigR.ok) {
-      const sigD = await sigR.json();
-      const signedUrl = sigD.wc2026;
-      if (signedUrl) {
-        const r = await fetch(signedUrl, { signal: AbortSignal.timeout(15000) });
-        if (r.ok) {
-          const d = await r.json();
-          if (d && d.team_data) {
-            TD = d.team_data;
-            source = "sports4cast-live";
-            sourceUpdated = d.updated ?? d.last_updated ?? null;
-          }
-        }
-      }
-    }
-  } catch { /* fallback stands */ }
+  // Official daily feed, with a 3-state fallback chain (live → saved fixture →
+  // our own model). champion/runner-up come straight from the feed's 10k-run
+  // figures; only the third-place playoff and the deep fallback are ours.
+  const fixturePath = path.join(repoRoot, "sim", "fixtures", "wc2026.json");
+  const { feed, source, raw: liveRaw } = await loadOfficialFeed(fixturePath, today);
+  const TD = feed ? feed.team_data : M.TEAM_DATA_FALLBACK;
+  const sourceUpdated = feed ? (feed.generated ?? null) : null;
+
+  // Auto-refresh the on-disk fixture from every successful live fetch so the
+  // backup is never more than a day old (the workflow commits it alongside the
+  // odds). git history keeps the daily snapshots.
+  if (source === "sports4cast-live" && liveRaw) {
+    try { fs.writeFileSync(fixturePath, liveRaw); console.log("Refreshed sim/fixtures/wc2026.json from live feed"); }
+    catch (e) { console.warn("Could not refresh fixture: " + e.message); }
+  }
 
   const teams = Object.keys(TD);
   if (teams.length !== 48) throw new Error("Expected 48 teams, got " + teams.length);
@@ -353,21 +478,56 @@ async function main() {
     [sid, Object.fromEntries(Object.entries(counts).map(([t, n]) => [t, n / SIMS]))]));
   const thirdSlotDists = rakeSlotDists(rawSlotDists, TD);
 
-  const out = {
-    generated: new Date().toISOString(),
-    seed: SEED, sims: SIMS, source, source_updated: sourceUpdated,
-    method: "Monte Carlo over official bracket; groups from Sports4cast p1-p4 marginals; third-place qualification weighted by Sports4cast p3q; knockout matches from wall-chart Elo model; modal = single most-likely playthrough, matching the wall chart's autosim",
-    team_data: TD,
-    elo_data: M.ELO ?? null,
-    champion: sortedPctMap("win"),
-    runnerUp: sortedPctMap("runnerUp"),
-    third: sortedPctMap("third"),
-    modal,
-    stages: Object.fromEntries(teams.map(t => [t, {
+  // Headline outputs. With an official feed (live or fixture) champion/runner-up
+  // are the feed's own 10k-run figures and third is the one-match playoff model;
+  // stages mirror the official exit-stage chances. Only in deep fallback do the
+  // Monte-Carlo tallies above drive the headline numbers.
+  let champion, runnerUp, third, stages, method, sourceSims;
+  if (feed) {
+    const officialMap = key => Object.fromEntries(
+      teams.map(t => [t, +(feed.team_data[t].chances[key] ?? 0).toFixed(2)])
+        .sort((a, b) => b[1] - a[1]));
+    const sfByTeam = Object.fromEntries(teams.map(t => [t, feed.team_data[t].chances.sf ?? 0]));
+    const thirdByTeam = thirdPlaceModel(M, TD, groupTeams, sfByTeam);
+    champion = officialMap("win");
+    runnerUp = officialMap("final");
+    third = Object.fromEntries(Object.entries(thirdByTeam).sort((a, b) => b[1] - a[1]));
+    stages = Object.fromEntries(teams.map(t => {
+      const c = feed.team_data[t].chances;
+      return [t, { group: c.group, r32: c.r32, r16: c.r16, qf: c.qf, sf: c.sf,
+                   final: c.final, win: c.win, runnerUp: c.final, third: thirdByTeam[t] ?? 0 }];
+    }));
+    sourceSims = feed.num_sims ?? null;
+    method = "Champion & runner-up are the official Sports4cast 10,000-run figures (chances.win / chances.final); third-place playoff is our one-match Elo model over the two semi-final losers; modal = single most-likely playthrough, matching the wall chart's autosim";
+  } else {
+    champion = sortedPctMap("win");
+    runnerUp = sortedPctMap("runnerUp");
+    third = sortedPctMap("third");
+    stages = Object.fromEntries(teams.map(t => [t, {
       r32: pct(tally[t].r32), r16: pct(tally[t].r16), qf: pct(tally[t].qf),
       sf: pct(tally[t].sf), f: pct(tally[t].f), win: pct(tally[t].win),
       runnerUp: pct(tally[t].runnerUp), third: pct(tally[t].third),
-    }])),
+    }]));
+    sourceSims = null;
+    method = "Live feed unavailable beyond the staleness window — full Monte Carlo over the official bracket off the wall chart's snapshot; groups from p1-p4 marginals, knockouts from the Elo model; modal = single most-likely playthrough";
+  }
+
+  const out = {
+    generated: new Date().toISOString(),
+    seed: SEED, sims: SIMS, source, source_updated: sourceUpdated, source_sims: sourceSims,
+    method,
+    team_data: TD,
+    elo_data: M.ELO ?? null,
+    champion,
+    runnerUp,
+    third,
+    modal,
+    // Provisional wooden-spoon watch (not a forecast — see spoonWatch); only the
+    // ranking inputs the feed actually carries, flagged not-final until ~27 Jun.
+    spoon: feed ? spoonWatch(feed, today)
+                : { final: false, pick: null, candidates: [],
+                    note: "Live data unavailable — spoon watch needs official group points." },
+    stages,
     // R32 third-place slot distribution: { r32_id: { team: prob 0-1 } }, raked so
     // each team's slot-total equals its p3q — aligned with the qualification section.
     third_slot_dists: thirdSlotDists,
