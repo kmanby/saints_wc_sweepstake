@@ -1,8 +1,8 @@
 {
-  "generated": "2026-06-25T16:15:15.004Z",
+  "generated": "2026-06-25T17:07:16.685Z",
   "seed": 20260625,
   "sims": 10000,
-  "source": "fixture-fallback",
+  "source": "sports4cast-live",
   "source_updated": "2026-06-25T09:01:36.777510Z",
   "source_sims": 10000,
   "method": "Champion & runner-up are the official Sports4cast 10,000-run figures (chances.win / chances.final); third-place playoff is our one-match Elo model over the two semi-final losers; modal = single most-likely playthrough, matching the wall chart's autosim",
