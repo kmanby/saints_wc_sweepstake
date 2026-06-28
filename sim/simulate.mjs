@@ -474,31 +474,34 @@ async function loadOfficialFeed(fixturePath, todayStr) {
   return { feed: null, source: "sim-fallback", raw: null };
 }
 
-// ---------- provisional wooden-spoon watch ----------
+// ---------- wooden spoon (LOCKED from real results, 27 Jun 2026) ----------
 // The £5 spoon CANNOT be forecast: it needs points → GD → GF → GA → fair play →
-// FIFA ranking, and the feed carries no scorelines or cards. This is a live
-// *watch* only — ordered by what we do have (points, then likelihood of finishing
-// bottom via p4, then FIFA points) — flagged not-final until the group stage ends.
-function spoonWatch(feed, todayStr) {
-  const td = feed.team_data, fifa = feed.fifa_pts || {};
-  const ranked = Object.keys(td).map(t => ({
-    team: t,
-    group: td[t].group ?? null,
-    pts: td[t].pts ?? null,
-    p4: td[t].p4 ?? 0,
-    fifa_pts: fifa[t] ?? null,
-  })).sort((a, b) =>
-    (a.pts ?? 99) - (b.pts ?? 99) ||           // fewest points
-    (b.p4 ?? 0) - (a.p4 ?? 0) ||               // most locked into last place
-    (a.fifa_pts ?? 9999) - (b.fifa_pts ?? 9999)); // weakest by FIFA points
-  return {
-    final: false,
-    as_of: todayStr,
-    pick: ranked[0]?.team ?? null,
-    candidates: ranked.slice(0, 6),
-    note: "Provisional. The £5 wooden spoon is decided by points, then goal difference, goals for/against, fair play and finally FIFA ranking — the feed only carries points and FIFA points, so this orders by points, then chance of finishing bottom (p4), then FIFA points. Locked from real results once the group stage ends (~27 Jun).",
-  };
-}
+// FIFA ranking, and the feed carries no scorelines or cards. So per the plan it is
+// hard-coded from the REAL final group tables once the group stage ends. All six
+// bottom teams finished on 0 points, so goal difference settles it outright: Iraq
+// −11 (GF 1, GA 12) is the worst, one goal below Tunisia (−10). Holder: Ed Marsh.
+// Scorelines (all confirmed against ESPN/FIFA/Sky/Al Jazeera match reports):
+//   Iraq       (Grp I): 1-4 Norway, 0-3 France, 0-5 Senegal     → GF 1, GA 12, GD -11
+//   Tunisia    (Grp F): 1-5 Sweden, 0-4 Japan, 1-3 Netherlands  → GF 2, GA 12, GD -10
+//   Uzbekistan (Grp K): 1-3 Colombia, 0-5 Portugal, 1-3 DR Congo→ GF 2, GA 11, GD  -9
+//   Haiti      (Grp C): 0-1 Scotland, 0-3 Brazil, 2-4 Morocco   → GF 2, GA  8, GD  -6
+//   Jordan     (Grp J): 1-3 Austria, 1-2 Algeria, 1-3 Argentina → GF 3, GA  8, GD  -5
+//   Panama     (Grp L): 0-1 Ghana, 0-1 Croatia, 0-2 England     → GF 0, GA  4, GD  -4
+const FINAL_SPOON = {
+  final: true,
+  as_of: "2026-06-27",
+  pick: "Iraq",
+  holder: "Ed Marsh",
+  candidates: [
+    { team: "Iraq",       group: "I", pts: 0, gf: 1, ga: 12, gd: -11, fifa_pts: 1426.5 },
+    { team: "Tunisia",    group: "F", pts: 0, gf: 2, ga: 12, gd: -10, fifa_pts: 1437.7 },
+    { team: "Uzbekistan", group: "K", pts: 0, gf: 2, ga: 11, gd:  -9, fifa_pts: 1444.5 },
+    { team: "Haiti",      group: "C", pts: 0, gf: 2, ga:  8, gd:  -6, fifa_pts: 1271   },
+    { team: "Jordan",     group: "J", pts: 0, gf: 3, ga:  8, gd:  -5, fifa_pts: 1372.3 },
+    { team: "Panama",     group: "L", pts: 0, gf: 0, ga:  4, gd:  -4, fifa_pts: 1505.3 },
+  ],
+  note: "LOCKED from the real final group tables (group stage ended 27 Jun 2026). The £5 wooden spoon goes to the tournament's bottom team by points → goal difference → goals for → goals against → fair play → FIFA ranking. All six bottom teams finished on 0 points, so goal difference decides it: Iraq −11 (GF 1, GA 12) is the worst, one goal below Tunisia (−10). Held by Ed Marsh.",
+};
 
 // ---------- main ----------
 async function main() {
@@ -606,11 +609,9 @@ async function main() {
     runnerUp,
     third,
     modal,
-    // Provisional wooden-spoon watch (not a forecast — see spoonWatch); only the
-    // ranking inputs the feed actually carries, flagged not-final until ~27 Jun.
-    spoon: feed ? spoonWatch(feed, today)
-                : { final: false, pick: null, candidates: [],
-                    note: "Live data unavailable — spoon watch needs official group points." },
+    // Wooden spoon: LOCKED from real results once the group stage ended (see
+    // FINAL_SPOON). No longer feed-dependent — it's a real-world fact now.
+    spoon: FINAL_SPOON,
     stages,
     // R32 third-place slot distribution: { r32_id: { team: prob 0-1 } }, raked so
     // each team's slot-total equals its p3q — aligned with the qualification section.
