@@ -137,7 +137,10 @@
     margin-top:1rem;text-align:center;font-style:italic;font-size:.8rem;opacity:.6;
   }
   .spoon-watch{
-    max-width:760px;width:94vw;margin:1rem auto 0;text-align:center;
+    /* fills the .chart-wrap content box like its #chartRows sibling — do NOT
+       reuse the parent's own max-width:760px/width:94vw here, or it overflows
+       the padded content box to the right (the maroon .locked bg made it show). */
+    margin:1rem 0 0;text-align:center;
     font-family:'Saira Condensed',sans-serif;font-size:.82rem;letter-spacing:.02em;
     color:var(--cream);background:rgba(217,169,60,.07);
     border:1px dashed var(--gold-soft);border-radius:8px;padding:.55rem .9rem;
