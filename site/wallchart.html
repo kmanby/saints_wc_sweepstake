@@ -157,48 +157,6 @@ body{
 .tr.lk-3 .rb{display:block;background:rgba(86,96,120,.5);color:var(--muted)}
 .tr.lk-4 .rb{display:block;background:rgba(86,96,120,.2);color:var(--muted)}
 
-/* ── Position picker overlay ── */
-.overlay{
-  position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;
-  display:none;align-items:center;justify-content:center;
-  backdrop-filter:blur(2px);
-}
-.overlay.on{display:flex}
-.picker{
-  background:var(--surface);border:1px solid var(--border-hi);
-  border-radius:14px;padding:22px 20px;width:290px;
-  box-shadow:0 20px 60px rgba(0,0,0,.6);
-}
-.picker-label{font-size:0.72rem;color:var(--muted);margin-bottom:3px}
-.picker-name{font-size:1.05rem;font-weight:800;margin-bottom:16px;color:var(--text)}
-.pbtn{
-  display:flex;align-items:center;gap:9px;width:100%;
-  padding:9px 11px;margin-bottom:7px;
-  border:1px solid var(--border);background:var(--surface2);
-  color:var(--text);border-radius:8px;cursor:pointer;
-  font-size:0.82rem;font-weight:600;font-family:inherit;
-  transition:all .13s;text-align:left;
-}
-.pbtn:hover:not(:disabled){background:var(--surface3);border-color:var(--border-hi)}
-.pbtn:disabled{opacity:.35;cursor:not-allowed}
-.pbtn .pl{
-  font-size:0.65rem;font-weight:800;padding:2px 6px;
-  border-radius:4px;min-width:22px;text-align:center;
-}
-.pl.p1{background:var(--lime);color:#000}
-.pl.p2{background:var(--dimmer);color:var(--white)}
-.pl.p3{background:rgba(86,96,120,.5);color:var(--muted)}
-.pl.p4{background:rgba(86,96,120,.2);color:var(--muted)}
-.pl.clr{background:var(--surface3);color:var(--muted);font-size:0.7rem}
-.taken-by{font-size:0.62rem;color:var(--dim);margin-left:auto;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cancel-btn{
-  width:100%;padding:8px;background:transparent;
-  border:1px solid var(--border);color:var(--muted);
-  border-radius:8px;cursor:pointer;font-size:0.78rem;
-  margin-top:4px;transition:background .13s;font-family:inherit;
-}
-.cancel-btn:hover{background:var(--surface2)}
-
 /* ── Third-place section ── */
 .third-section{
   margin-bottom:28px;background:var(--surface);
@@ -637,11 +595,6 @@ footer{
   </div>
 </div>
 
-<div class="overlay" id="overlay">
-  <div class="picker" id="picker"></div>
-</div>
-
-
 <!-- referrer guard removed with Sports4cast's permission for the Saints CC site -->
 <script>
 "use strict";
@@ -662,22 +615,6 @@ const FLAGS = {
   "Portugal":"🇵🇹","Colombia":"🇨🇴","Uzbekistan":"🇺🇿","DR Congo":"🇨🇩",
   "England":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","Croatia":"🇭🇷","Ghana":"🇬🇭","Panama":"🇵🇦"
 };
-
-const CODES = {
-  "Mexico":"MEX","South Korea":"KOR","Czechia":"CZE","South Africa":"RSA",
-  "Canada":"CAN","Switzerland":"SUI","Qatar":"QAT","Bosnia-Herzegovina":"BIH",
-  "Brazil":"BRA","Morocco":"MAR","Haiti":"HAI","Scotland":"SCO",
-  "USA":"USA","Paraguay":"PAR","Australia":"AUS","Turkey":"TUR",
-  "Germany":"GER","Ivory Coast":"CIV","Ecuador":"ECU","Curacao":"CUW",
-  "Netherlands":"NED","Japan":"JPN","Tunisia":"TUN","Sweden":"SWE",
-  "Belgium":"BEL","Egypt":"EGY","Iran":"IRN","New Zealand":"NZL",
-  "Spain":"ESP","Saudi Arabia":"KSA","Uruguay":"URU","Cape Verde":"CPV",
-  "France":"FRA","Senegal":"SEN","Norway":"NOR","Iraq":"IRQ",
-  "Argentina":"ARG","Algeria":"ALG","Austria":"AUT","Jordan":"JOR",
-  "Portugal":"POR","Colombia":"COL","Uzbekistan":"UZB","DR Congo":"COD",
-  "England":"ENG","Croatia":"CRO","Ghana":"GHA","Panama":"PAN"
-};
-
 
 // ─── SAINTS CC SWEEPSTAKE LAYER ──────────────────────────────────────
 const OWNER = {
@@ -786,7 +723,6 @@ Object.keys(FLAGS).forEach(t => {
 });
 
 function flag(team){ return FLAGS[team] ? FLAGS[team]+" " : ""; }
-function code(team){ return CODES[team] || team; }
 // owner is the primary label everywhere; country lives in the team card
 function ownLabel(team){ return ownerShort(team) || team; }
 function infoFlag(team){ return `<span class="info-tap" role="button" aria-label="About ${team}">${flag(team)}</span>`; }
@@ -819,6 +755,16 @@ function champPctFor(team){
 }
 function fmtChampPct(v){
   return v < 0.1 ? "&lt;0.1%" : (v < 10 ? v.toFixed(1) : v.toFixed(0)) + "%";
+}
+
+// Publish the champion distribution (feed if loaded, else the in-page model) to
+// the parent (index.html). It's the middle tier of index's odds-chart source
+// priority — used only when index's own daily-sim.json fetch fails. Keyed by
+// sim team name, which index maps via NAME2CODE.
+function publishChampDist(){
+  const dist = CHAMP_PCT || CHAMP_FALLBACK;
+  if(!dist) return;
+  window.parent.postMessage({ type: "s4c-champ-dist", id: "wc2026", dist }, "*");
 }
 
 // ─── TEAM CARD (hover shows, tap/click pins) ─────────────────────────
@@ -1242,9 +1188,7 @@ function probBg(p){
   const b = Math.round(255 + (71  - 255) * t);
   return `rgb(${r},${g},${b})`;
 }
-function probFg(p){
-  return '#1c2130';
-}
+const PROB_FG = "#1c2130";   // chip text colour (constant across the scale)
 
 // ─── GROUP HELPERS ───────────────────────────────────────────────────
 
@@ -1370,17 +1314,14 @@ function buildGroupCard(g){
     row.style.cursor = "default";
 
     const probs=[d.p1,d.p2,d.p3,d.p4];
-    // Find highest prob index in this row for accent
-    const maxProb = Math.max(...probs);
 
     const pcSpans = probs.map((p,i)=>{
       const pos = i+1;
       const isSelected = (lp === pos);
-      const isTopProb = (p === maxProb) && !isSelected;
-      const cls = `pc${isSelected?" pc-selected":""}${(!isSelected && isTopProb)?" pc-top":""}`;
+      const cls = `pc${isSelected?" pc-selected":""}`;
       const posLabel = ["1st","2nd","3rd","4th"][i];
       const tooltip = `Assign ${team} as ${posLabel} in Group ${g}`;
-      return `<span class="${cls}" style="background:${probBg(p)};color:${probFg(p)}" title="${tooltip}" data-g="${g}" data-team="${team.replace(/"/g,'&quot;')}" data-pos="${pos}">${p.toFixed(0)}%</span>`;
+      return `<span class="${cls}" style="background:${probBg(p)};color:${PROB_FG}" title="${tooltip}" data-g="${g}" data-team="${team.replace(/"/g,'&quot;')}" data-pos="${pos}">${p.toFixed(0)}%</span>`;
     });
 
     const badge = lp?`<span class="rb">${lp}</span>`:`<span class="rb"></span>`;
@@ -1429,57 +1370,6 @@ function buildGroupCard(g){
   return card;
 }
 
-// ─── POSITION PICKER ───────────────────────────────────────────────────
-
-function openPicker(g, team){
-  const byPos={};
-  for(const[p,t] of Object.entries(sel[g])) byPos[parseInt(p)]=t;
-
-  const labels=["1st Place","2nd Place","3rd Place","4th Place"];
-  const cls=["p1","p2","p3","p4"];
-  const isLocked = Object.entries(sel[g]).find(([,t])=>t===team);
-
-  let html=`<div class="picker-label">Assign position for</div>
-<div class="picker-name">${flag(team)}${team}</div>`;
-
-  if(isLocked){
-    html+=`<button class="pbtn" onclick="clearPick('${g}','${team}')"><span class="pl clr">✕</span>Clear Position</button><hr style="border-color:var(--border);margin:8px 0">`;
-  }
-
-  for(let i=0;i<4;i++){
-    const pos=i+1;
-    const takenBy=byPos[pos];
-    const taken=takenBy&&takenBy!==team;
-    const oc=taken?"":"pickPos('"+g+"','"+team+"',"+pos+")";
-    const dis=taken?"disabled":"";
-    const tb=taken?`<span class="taken-by">${flag(takenBy)}${takenBy}</span>`:"";
-    html+=`<button class="pbtn" onclick="${oc}" ${dis}>`
-      +`<span class="pl ${cls[i]}">${pos}</span>`
-      +labels[i]+tb+"</button>";
-  }
-  html+=`<button class="cancel-btn" onclick="closePicker()">Cancel</button>`;
-
-  document.getElementById("picker").innerHTML=html;
-  document.getElementById("overlay").classList.add("on");
-}
-
-function closePicker(){
-  document.getElementById("overlay").classList.remove("on");
-}
-
-function pickPos(g,team,pos){
-  for(const[p,t] of Object.entries(sel[g])) if(t===team) delete sel[g][p];
-  sel[g][pos]=team;
-  closePicker();
-  onGroupChange();
-}
-
-function clearPick(g,team){
-  for(const[p,t] of Object.entries(sel[g])) if(t===team) delete sel[g][p];
-  closePicker();
-  onGroupChange();
-}
-
 // ─── DIRECT CELL ASSIGNMENT ─────────────────────────────────────────────────
 // Called when user clicks a probability cell directly
 function assignPosition(g, team, pos){
@@ -1499,10 +1389,6 @@ function assignPosition(g, team, pos){
   }
   onGroupChange();
 }
-
-document.getElementById("overlay").addEventListener("click",function(e){
-  if(e.target===this) closePicker();
-});
 
 // ─── AUTO-FILL ──────────────────────────────────────────────────────
 
@@ -1921,7 +1807,6 @@ function renderKO(){
   finalHdr.textContent = "Final";
   finalZone.appendChild(finalHdr);
   const finalCard = buildMatchCard(final[0], false);
-  finalCard.classList.add("final-card");
   finalZone.appendChild(finalCard);
   const champ = kwins["final"];
   const champBox = document.createElement("div");
@@ -1939,7 +1824,7 @@ function renderKO(){
 
   // Lower SF zone — card above SF2 label, centred in zone
   const sfZone2 = document.createElement("div");
-  sfZone2.className = "sf-zone lower";
+  sfZone2.className = "sf-zone";
   const sfInner2 = document.createElement("div");
   sfInner2.className = "sf-inner";
   const sfCard2 = buildMatchCard(sf[1], false);
@@ -2311,6 +2196,7 @@ function initPage() {
   if(_afBtn) _afBtn.classList.add("active");
   if(typeof koAutoFill === "function") koAutoFill('ALL');
   renderGroups(); renderKO(); sendH();
+  publishChampDist();
   // Late fallback: mobile flex layouts and web fonts can settle after the
   // initial 250 ms window, so fire again at 1.5 s to catch any remaining gap.
   setTimeout(sendH, 1500);

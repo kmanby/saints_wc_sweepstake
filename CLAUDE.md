@@ -35,7 +35,12 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
     % from daily-sim.json with the in-page Elo model as fallback, fun fact).
     Tapping a FLAG pins the card; tapping the rest of a bracket row still
     advances the team — keep that split, it's what preserves tap-to-advance
-    on touch.
+    on touch. On load it `postMessage`s the parent two things: `s4c-height`
+    (iframe auto-height) and `s4c-champ-dist` (its champion distribution, feed
+    if loaded else the in-page model) — the latter is index.html's middle-tier
+    odds fallback (see Daily sim subsystem). Group finishing positions are set
+    by clicking probability cells directly (`assignPosition`); there is no
+    separate position-picker modal.
 - `netlify/functions/sports4cast.mjs` — API proxy (see Security)
 - `netlify.toml` — publish dir + functions dir
 
