@@ -90,6 +90,12 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
   collapse to a negative right margin and it overflows ~45px to the right. Let
   panel children fill the content box (`width:auto`), like `#chartRows`. It bit
   the spoon-watch pill once (the solid maroon `.locked` bg made the spill loud).
+- **Grid/flex items need `min-width:0` or they overflow narrow screens.** A grid
+  item defaults to `min-width:auto`, so a `1fr` track can't shrink below its
+  content's min-content — text with `overflow:hidden`+`text-overflow:ellipsis`
+  never truncates and the columns blow past the viewport. It bit the 3rd-place
+  `.t3btn` grid on mobile (3 cols ran ~32px off the right). Fix: `min-width:0`
+  on the grid/flex item itself, not just the inner `.t3-name`.
 - Pages embed logo + flags (self-contained rendering) but index.html and
   wallchart.html now FETCH same-origin data: `data/facts.json`,
   `data/daily-sim.json` (+ the GCS wc2026.json). All fetches degrade

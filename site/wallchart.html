@@ -170,6 +170,10 @@ body{
   background:var(--surface2);color:var(--muted);
   border-radius:8px;cursor:pointer;font-size:0.75rem;font-weight:500;
   display:flex;align-items:center;gap:5px;transition:all .15s;font-family:inherit;
+  /* grid item: allow the track to shrink to its 1fr share so .t3-name can
+     ellipsize — without this, min-width:auto blows the columns past the
+     viewport on narrow screens (the 3rd-place grid overflowed right on mobile) */
+  min-width:0;
 }
 .t3btn.sel{
   border-color:rgba(168,213,71,.5);background:var(--lime-glow);color:var(--white);
