@@ -84,6 +84,12 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
 - Emoji flags render as letter codes on Windows — that's why all 48 flags are
   embedded base64 PNGs in the pages. Keep it that way (works offline too).
 - `draw.html` uses localStorage (key `saints-wc-draw-v1`) to survive refreshes.
+- **Children of `.chart-wrap` must NOT reuse its `max-width:760px;width:94vw`.**
+  That sizing is for the panel itself; the panel has `1.4rem` side padding, so a
+  child forced to the same width can't fit its content box — its `auto` margins
+  collapse to a negative right margin and it overflows ~45px to the right. Let
+  panel children fill the content box (`width:auto`), like `#chartRows`. It bit
+  the spoon-watch pill once (the solid maroon `.locked` bg made the spill loud).
 - Pages embed logo + flags (self-contained rendering) but index.html and
   wallchart.html now FETCH same-origin data: `data/facts.json`,
   `data/daily-sim.json` (+ the GCS wc2026.json). All fetches degrade
