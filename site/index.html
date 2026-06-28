@@ -459,9 +459,6 @@
   };
   const flagData = c => `data:image/png;base64,${FLAGS[c]}`;
   const TEAM_NAME = Object.fromEntries(nations.map(([c,n])=>[c,n]));
-  const flagUrl = flagData;
-  const flagUrlSmall = flagData;
-  const flagUrlBig = flagData;
 
   const OWNERS = {"ca":"Jamie Briant 1","es":"Jamie Briant 2","mx":"Benjy Briant 1","br":"Flo Briant 1","au":"Jaffa (the dog) 1","gh":"Ed Pragnell 1","ec":"Ed Pragnell 2","pa":"Steve Vaughan 1","pt":"Steve Vaughan 2","us":"Rael Miller 1","gb-sct":"Ed Nangle 1","tr":"Ed Nangle 2","cv":"Jack Connell 1","kr":"Jack Connell 2","cw":"Jonny Singh 1","se":"Alex Baker 1","sa":"James Crisp 1","qa":"Ben Hanson 1","de":"Tom Hadden 1","sn":"Tom Hadden 2","dz":"Mike Cattel 1","jo":"Carl Pullensen 1","py":"Carl Pullensen 2","iq":"Ed Marsh 1","hr":"Jack Beeck 1","ht":"Jack Beeck 2","nz":"Dan Formosa 1","uy":"Dan Formosa 2","za":"Charles Hall 1","gb-eng":"Callum Booker 1","no":"Nic Roberts 1","ci":"Dan Bisson 1","tn":"Jonny Ward Manning 1","uz":"Jonny Ward Manning 2","ar":"Jonny Ward Manning 3","ma":"Jonny Ward Manning 4","fr":"David Gregory 1","ir":"Corran McCulloch 1","cd":"Karam Hirji 1","nl":"Henry Waite 1","be":"Chris Sykes 1","ch":"Graeme Acheson 1","at":"Kit MM 1","ba":"Kit MM 2","eg":"Kit MM 3","jp":"Kit MM 4","co":"Charlotte Hilton 1","cz":"Guy &amp; Al MM 1"};
 
@@ -481,7 +478,7 @@
     d.setAttribute("role","button");
     d.setAttribute("tabindex","0");
     d.setAttribute("aria-label",`${n} \u2014 read fun fact`);
-    d.innerHTML=`<img src="${flagUrl(c)}" alt="${n} flag" loading="lazy"><span class="owner">${OWNERS[c]}</span><span class="n">${n}</span>`;
+    d.innerHTML=`<img src="${flagData(c)}" alt="${n} flag" loading="lazy"><span class="owner">${OWNERS[c]}</span><span class="n">${n}</span>`;
     d.addEventListener("click",()=>openCard(c,n));
     d.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openCard(c,n);}});
     grid.appendChild(d);
@@ -495,7 +492,7 @@
         cardTitle=document.getElementById("cardTitle"),
         cardFact=document.getElementById("cardFact");
   function openCard(c,n){
-    cardFlag.src=flagUrlBig(c);
+    cardFlag.src=flagData(c);
     cardFlag.alt=`${n} flag`;
     cardTitle.textContent=n;
     document.getElementById("cardHolder").innerHTML = "Held by " + OWNERS[c];
@@ -515,7 +512,7 @@
   // ribbons (doubled for a seamless loop)
   function fillRibbon(id){
     const t=document.getElementById(id);
-    const imgs = nations.map(([c])=>`<img src="${flagUrlSmall(c)}" alt="" loading="lazy">`).join("");
+    const imgs = nations.map(([c])=>`<img src="${flagData(c)}" alt="" loading="lazy">`).join("");
     t.innerHTML = imgs + imgs;
   }
   fillRibbon("ribbonTop");
