@@ -1126,54 +1126,67 @@
     "third": "Spain"
   },
   "spoon": {
-    "final": false,
-    "as_of": "2026-06-28",
-    "pick": "Haiti",
+    "final": true,
+    "as_of": "2026-06-27",
+    "pick": "Iraq",
+    "holder": "Ed Marsh",
     "candidates": [
-      {
-        "team": "Haiti",
-        "group": "C",
-        "pts": 0,
-        "p4": 100,
-        "fifa_pts": 1271
-      },
-      {
-        "team": "Jordan",
-        "group": "J",
-        "pts": 0,
-        "p4": 100,
-        "fifa_pts": 1372.3
-      },
       {
         "team": "Iraq",
         "group": "I",
         "pts": 0,
-        "p4": 100,
+        "gf": 1,
+        "ga": 12,
+        "gd": -11,
         "fifa_pts": 1426.5
       },
       {
         "team": "Tunisia",
         "group": "F",
         "pts": 0,
-        "p4": 100,
+        "gf": 2,
+        "ga": 12,
+        "gd": -10,
         "fifa_pts": 1437.7
       },
       {
         "team": "Uzbekistan",
         "group": "K",
         "pts": 0,
-        "p4": 100,
+        "gf": 2,
+        "ga": 11,
+        "gd": -9,
         "fifa_pts": 1444.5
+      },
+      {
+        "team": "Haiti",
+        "group": "C",
+        "pts": 0,
+        "gf": 2,
+        "ga": 8,
+        "gd": -6,
+        "fifa_pts": 1271
+      },
+      {
+        "team": "Jordan",
+        "group": "J",
+        "pts": 0,
+        "gf": 3,
+        "ga": 8,
+        "gd": -5,
+        "fifa_pts": 1372.3
       },
       {
         "team": "Panama",
         "group": "L",
         "pts": 0,
-        "p4": 100,
+        "gf": 0,
+        "ga": 4,
+        "gd": -4,
         "fifa_pts": 1505.3
       }
     ],
-    "note": "Provisional. The £5 wooden spoon is decided by points, then goal difference, goals for/against, fair play and finally FIFA ranking — the feed only carries points and FIFA points, so this orders by points, then chance of finishing bottom (p4), then FIFA points. Locked from real results once the group stage ends (~27 Jun)."
+    "note": "LOCKED from the real final group tables (group stage ended 27 Jun 2026). The £5 wooden spoon goes to the tournament's bottom team by points → goal difference → goals for → goals against → fair play → FIFA ranking. All six bottom teams finished on 0 points, so goal difference decides it: Iraq −11 (GF 1, GA 12) is the worst, one goal below Tunisia (−10). Held by Ed Marsh."
   },
   "stages": {
     "Algeria": {

@@ -102,20 +102,39 @@ async function checkIndex({ sim, sweep }) {
     check(`row ${i + 1}: ${medal} ${amount} for ${person}`, ok,
       `got ${row.querySelector(".nm")?.textContent} ${row.querySelector(".cmedal")?.textContent} ${row.querySelector(".cprize")?.textContent || "no £"}`);
   });
+  // £ labels mark the modal podium and — once locked — the wooden-spoon holder.
+  const paidPeople = new Set(expected.map((e) => e[0]));
+  if (sim.spoon?.final) paidPeople.add(holderOf(sim.spoon.pick));
   const paidRows = rows.filter((r) => r.querySelector(".cprize"));
-  check("£ labels on exactly the podium rows", paidRows.length === new Set(expected.map((e) => e[0])).size,
-    `${paidRows.length}`);
+  check("£ labels on exactly the podium (+ locked spoon) rows", paidRows.length === paidPeople.size,
+    `${paidRows.length} vs ${paidPeople.size}`);
   check("£ amount no longer sits in a bar", rows.every((r) => !r.querySelector(".cbar .cprize, .cbar.b")));
   const rest = rows.slice(3);
   const sums = rest.map((r) => parseFloat(r.querySelector(".cbar .cval").textContent) || 0);
   check("rest sorted by bar value desc", sums.every((v, i) => i === 0 || sums[i - 1] >= v));
 
-  // provisional wooden-spoon watch: visible, names today's pick, flagged not-final
+  // wooden spoon: a provisional *watch* until locked, then the final result —
+  // banner drops "provisional", and the holder gets a 🥄 + £5 row pinned last.
   const spoonEl = doc.getElementById("spoonWatch");
   const spoonPick = sim.spoon?.pick;
-  check("spoon watch shows the provisional pick", !!spoonPick && spoonEl && !spoonEl.hidden
-    && spoonEl.textContent.includes(spoonPick) && /provisional/i.test(spoonEl.textContent),
-    (spoonEl?.textContent || "").trim().slice(0, 90));
+  if (sim.spoon?.final) {
+    const spoonPerson = holderOf(spoonPick);
+    check("spoon locked: banner shows final £5 result (not provisional)",
+      !!spoonPick && spoonEl && !spoonEl.hidden && spoonEl.textContent.includes(spoonPick)
+      && /£5|wooden spoon/i.test(spoonEl.textContent) && !/provisional/i.test(spoonEl.textContent),
+      (spoonEl?.textContent || "").trim().slice(0, 100));
+    const spoonRow = rows[rows.length - 1];
+    check("spoon holder pinned to last row with 🥄 + £5",
+      spoonRow?.classList.contains("spoon")
+      && spoonRow.querySelector(".nm")?.textContent === spoonPerson
+      && spoonRow.querySelector(".cmedal")?.textContent.includes("🥄")
+      && spoonRow.querySelector(".cprize")?.textContent === "£5",
+      `${spoonRow?.querySelector(".nm")?.textContent} / ${spoonRow?.querySelector(".cmedal")?.textContent} / ${spoonRow?.querySelector(".cprize")?.textContent}`);
+  } else {
+    check("spoon watch shows the provisional pick", !!spoonPick && spoonEl && !spoonEl.hidden
+      && spoonEl.textContent.includes(spoonPick) && /provisional/i.test(spoonEl.textContent),
+      (spoonEl?.textContent || "").trim().slice(0, 90));
+  }
 
   // top-20 collapse with expand toggle
   const chartRows = doc.getElementById("chartRows");

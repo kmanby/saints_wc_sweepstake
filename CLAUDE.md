@@ -8,7 +8,8 @@ Prizes: £100 holder of the team that wins the final · £50 loses the final ·
 by points → GD → GF → GA → fair play → FIFA ranking). The sim CANNOT compute
 the spoon (it produces finishing orders, not scorelines/cards) — decision
 agreed 2026-06-12: hard-code the spoon holder from real results once the
-group stage finishes; do not simulate it.
+group stage finishes; do not simulate it. LOCKED 28 Jun: **Iraq, held by Ed
+Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
 
 ## Repo layout
 - `site/` — static pages (Netlify publish dir)
@@ -111,9 +112,16 @@ group stage finishes; do not simulate it.
    progresses (`.tr.locked` CSS hooks exist); may auto-populate from
    `/api/fixtures` if it carries results — confirm first.
 4. Retire countdown remnants on index.html as tracker features land.
-5. **[WAITS for group stage end ~27 Jun]** Wooden spoon: hard-code bottom
-   team + holder from real results (see prize note at top), add 🥄 + £5 row
-   styling to the chart.
+5. [DONE 28 Jun] **Wooden spoon** locked from real results. All six bottom
+   teams finished the group stage on 0 pts, so goal difference settled it:
+   **Iraq −11** (GF 1, GA 12) — one goal worse than Tunisia (−10) — holder
+   **Ed Marsh**. Hard-coded as `FINAL_SPOON` in `sim/simulate.mjs` (`spoon.final
+   = true`, per-candidate gf/ga/gd from the real tables, scorelines in the code
+   comment, cross-checked vs ESPN/FIFA/Sky/Al Jazeera). index.html: the
+   spoon-watch banner switches to the locked £5 result when `spoon.final`, and
+   the holder gets a 🥄 + £5 badge on a `.crow.spoon` row pinned to the bottom
+   of the odds chart (kept visible when collapsed via `:not(.spoon)`). If real
+   results are ever found to differ, edit `FINAL_SPOON` and rerun the sim.
 
 ## Daily sim subsystem
 - `sim/simulate.mjs` builds the daily odds (default 10,000 sims, seed =

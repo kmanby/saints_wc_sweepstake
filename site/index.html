@@ -110,13 +110,21 @@
     width:0;transition:width 1.1s cubic-bezier(.2,.7,.2,1);
   }
   .crow.zero .cfill{background:rgba(242,234,211,.22)}
+  /* wooden-spoon seat: maroon tint, gold dashed top edge, £5 in maroon-cream */
+  .crow.spoon{
+    background:rgba(92,18,36,.32);border:1px solid rgba(217,169,60,.3);
+    border-radius:6px;padding:.3rem .45rem;margin-top:.35rem;
+  }
+  .crow.spoon .cprize{color:var(--gold)}
+  .crow.spoon .cfill{background:rgba(242,234,211,.22)}
   .cval{
     position:absolute;right:.5rem;top:50%;transform:translateY(-50%);
     font-family:'Saira Condensed',sans-serif;font-weight:700;font-size:.8rem;
     letter-spacing:.04em;color:var(--cream);text-shadow:0 1px 2px rgba(0,0,0,.7);
   }
-  /* collapse to the top 20; the rest expand on demand */
-  .chart-rows.collapsed .crow:nth-child(n+21){display:none}
+  /* collapse to the top 20; the rest expand on demand. The wooden-spoon row is
+     pinned to the bottom but always shown — it's the whole point of the table. */
+  .chart-rows.collapsed .crow:nth-child(n+21):not(.spoon){display:none}
   .chart-more{text-align:center;margin-top:1.1rem}
   .more-btn{
     font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.18em;
@@ -129,13 +137,20 @@
     margin-top:1rem;text-align:center;font-style:italic;font-size:.8rem;opacity:.6;
   }
   .spoon-watch{
-    max-width:760px;width:94vw;margin:1rem auto 0;text-align:center;
+    /* fills the .chart-wrap content box like its #chartRows sibling — do NOT
+       reuse the parent's own max-width:760px/width:94vw here, or it overflows
+       the padded content box to the right (the maroon .locked bg made it show). */
+    margin:1rem 0 0;text-align:center;
     font-family:'Saira Condensed',sans-serif;font-size:.82rem;letter-spacing:.02em;
     color:var(--cream);background:rgba(217,169,60,.07);
     border:1px dashed var(--gold-soft);border-radius:8px;padding:.55rem .9rem;
   }
   .spoon-watch strong{color:var(--gold);text-transform:uppercase;letter-spacing:.08em}
   .spoon-watch em{opacity:.7}
+  /* once locked, drop the dashed "provisional" look for a solid maroon seat */
+  .spoon-watch.locked{
+    background:rgba(92,18,36,.3);border:1px solid var(--gold-soft);border-style:solid;
+  }
 
   /* ---------- fixtures / results rows ---------- */
   .frows{display:flex;flex-direction:column}
@@ -532,10 +547,12 @@
   // runnerUp, third} as flag codes — the same path the wall chart's autosim
   // pre-fills). The payout still drives the sort (prize-winners to the top),
   // it's just no longer drawn as its own bar. Wooden spoon (£5) is hard-coded
-  // once the group stage finishes — not simulated.
+  // once the group stage finishes (not simulated): its holder gets a 🥄 + £5 and
+  // is pinned to the bottom row — last place — kept visible even when collapsed.
   const PRIZES = [["champion",100,"\u{1F3C6}"],["runnerUp",50,"\u{1F948}"],["third",25,"\u{1F949}"]];
   const CHART_LIMIT = 20;          // rows shown before "Show all"
   let chartExpanded = false;       // persists across re-renders (snapshot → daily sim)
+  let spoonInfo = null;            // the LOCKED wooden spoon (set from daily-sim.json)
 
   function applyChartCollapse(total){
     const rows = document.getElementById("chartRows");
@@ -559,6 +576,11 @@
       peopleMap[person].teams.push(code);
       peopleMap[person].sum += (winpc[code] ?? 0);
     }
+    // Wooden spoon (£5): once locked, its holder gets a 🥄 medal + £5 beside the
+    // name and is pinned to the very bottom of the chart — last place, literally.
+    const spoonCode = (spoonInfo && spoonInfo.final && spoonInfo.pick) ? NAME2CODE[spoonInfo.pick] : null;
+    const spoonHolder = spoonCode ? (OWNERS[spoonCode] || "").replace(/\s+\d+$/, "") : null;
+
     const standings = Object.entries(peopleMap).map(([name,p])=>{
       let payout = 0, medals = "", bestPos = PRIZES.length;
       if(modal) PRIZES.forEach(([pos, amount, medal], i)=>{
@@ -566,8 +588,16 @@
           payout += amount; medals += medal; bestPos = Math.min(bestPos, i);
         }
       });
-      return {name, teams:p.teams, sum:+p.sum.toFixed(1), payout, medals, bestPos};
-    }).sort((a,b)=> a.bestPos-b.bestPos || b.sum-a.sum);  // prize-winners first, then by bar
+      const isSpoon = !!spoonHolder && name === spoonHolder;
+      const spoonPrize = isSpoon ? 5 : 0;
+      if(isSpoon) medals += "\u{1F944}";   // 🥄
+      return {name, teams:p.teams, sum:+p.sum.toFixed(1), payout, spoonPrize, medals, bestPos, isSpoon};
+    }).sort((a,b)=>{
+      // prize-winners first by podium, then by bar; the spoon holder (if they have
+      // no podium prize) drops to the very bottom — the wooden-spoon seat.
+      const aS = a.isSpoon && !a.payout ? 1 : 0, bS = b.isSpoon && !b.payout ? 1 : 0;
+      return aS - bS || a.bestPos - b.bestPos || b.sum - a.sum;
+    });
 
     const fmtPct = v => v===0 ? "<0.1%" : v.toFixed(1) + "%";
     const maxSum = Math.max(...standings.map(r=>r.sum)) || 1;
@@ -576,9 +606,10 @@
     chartRows.innerHTML = "";
     standings.forEach(r=>{
       const row = document.createElement("div");
-      row.className = "crow" + (r.sum===0 ? " zero" : "");
+      row.className = "crow" + (r.sum===0 ? " zero" : "") + (r.isSpoon ? " spoon" : "");
       const flags = r.teams.map(c=>`<img src="${flagData(c)}" alt="${TEAM_NAME[c]}" title="${TEAM_NAME[c]}">`).join("");
-      const prize = r.payout ? `<span class="cprize">£${r.payout}</span>` : "";
+      const totalPrize = r.payout + r.spoonPrize;
+      const prize = totalPrize ? `<span class="cprize">£${totalPrize}</span>` : "";
       row.innerHTML = `
         <div class="cmedal">${r.medals}</div>
         <div class="cname">
@@ -633,20 +664,31 @@
     }
   }
 
-  // Provisional wooden-spoon watch. NOT a prediction — the spoon needs final
-  // points, then GD/GF/GA, then fair play, none of which the feed carries — so
-  // this only flags today's bottom-of-the-pile candidate, clearly marked not-final.
+  // Wooden-spoon banner. Until the group stage settles it this is a *watch*
+  // (provisional, ordered by points then likelihood of finishing bottom); once
+  // spoon.final is set it becomes the LOCKED result (bottom team by points → GD →
+  // GF → GA → fair play → FIFA ranking), hard-coded from real scorelines.
   function renderSpoonWatch(spoon){
     const el = document.getElementById("spoonWatch");
     if(!el) return;
     if(!spoon || !spoon.pick){ el.hidden = true; return; }
     const team = spoon.pick, code = NAME2CODE[team];
-    const owner = code ? (OWNERS[code] || "").replace(/\s+\d+$/, "") : "";
+    const owner = spoon.holder || (code ? (OWNERS[code] || "").replace(/\s+\d+$/, "") : "");
     el.hidden = false;
-    el.innerHTML = "&#129348; <strong>Spoon watch</strong> &middot; "
-      + (owner ? owner + "&rsquo;s " : "") + team
-      + " sits bottom of the pile right now &mdash; "
-      + "<em>provisional; the &pound;5 spoon locks in once the group stage ends</em>.";
+    if(spoon.final){
+      el.classList.add("locked");
+      const c = (spoon.candidates || []).find(x => x.team === team);
+      const gd = c && c.gd != null ? ` (${c.gd >= 0 ? "+" : ""}${c.gd} GD)` : "";
+      el.innerHTML = "&#129348; <strong>Wooden spoon &mdash; &pound;5</strong> &middot; "
+        + (owner ? owner + "&rsquo;s " : "") + team
+        + " finish dead last" + gd + " &mdash; "
+        + "<em>bottom of all 48 on points, then goal difference</em>.";
+    } else {
+      el.innerHTML = "&#129348; <strong>Spoon watch</strong> &middot; "
+        + (owner ? owner + "&rsquo;s " : "") + team
+        + " sits bottom of the pile right now &mdash; "
+        + "<em>provisional; the &pound;5 spoon locks in once the group stage ends</em>.";
+    }
   }
 
   renderOddsChart(WINPC_SNAPSHOT, "Sports4cast model &middot; 12 Jun 2026 snapshot");
@@ -660,6 +702,7 @@
       const when = d.source_updated ? d.source_updated.slice(0,10)
                  : (d.generated ? d.generated.slice(0,10) : "");
       setSourceBanner(d.source, when);
+      spoonInfo = d.spoon || null;   // feeds both the banner and the chart's 🥄 row
       renderSpoonWatch(d.spoon);
       const live = {}, unmatched = [];
       for(const [team, v] of Object.entries(d.champion)){
