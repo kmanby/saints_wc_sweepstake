@@ -155,11 +155,23 @@
   /* ---------- fixtures / results rows ---------- */
   .frows{display:flex;flex-direction:column}
   .frow{
-    display:grid;grid-template-columns:3rem 1fr 5rem 1fr;gap:.5rem;
-    align-items:center;padding:.5rem 0;
+    display:flex;flex-direction:column;gap:.3rem;padding:.5rem 0;
     border-bottom:1px solid rgba(217,169,60,.15);
   }
   .frow:last-child{border-bottom:none}
+  .fmain{
+    display:grid;grid-template-columns:3rem 1fr 5rem 1fr;gap:.5rem;
+    align-items:center;
+  }
+  /* "on TV in the UK" line under upcoming fixtures (see data/tv-uk.json) */
+  .fbroadcast{
+    text-align:center;font-family:'Saira Condensed',sans-serif;
+    font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--gold-soft);
+  }
+  .fbroadcast .fch{color:var(--gold);font-weight:700}
+  .fbroadcast .fstream{opacity:.7}
+  .fbroadcast.tbc{opacity:.55;font-style:italic;text-transform:none;letter-spacing:0}
   .ftime{
     font-family:'Saira Condensed',sans-serif;font-weight:700;color:var(--gold);
     text-align:center;font-size:.82rem;
@@ -746,6 +758,10 @@
   const COHOST_BOOST = 25;
   // snapshot of the wall chart's Elo table (storage.googleapis.com has no
   // CORS headers, so the live GCS file can't be fetched from the browser)
+  // UK free-to-air broadcaster per match (data/tv-uk.json), keyed by openfootball
+  // `num`. Loaded best-effort; absent/failed -> no broadcaster line (it's a
+  // nice-to-have, never block the fixtures on it).
+  let TV_UK = {};
   let ELO_DATA = {"Spain":1441.6,"France":1436.4,"Germany":1407.3,"England":1406.7,"Netherlands":1405.9,"Brazil":1396.0,"Argentina":1387.3,"Portugal":1385.9,"Belgium":1373.7,"Croatia":1353.5,"Colombia":1316.2,"Uruguay":1296.2,"Switzerland":1273.6,"Turkey":1262.1,"Norway":1257.8,"Mexico":1256.9,"Austria":1254.3,"Senegal":1229.8,"Morocco":1225.6,"Scotland":1221.2,"Japan":1198.5,"Ecuador":1188.8,"Sweden":1184.3,"Ivory Coast":1180.3,"Australia":1177.4,"Egypt":1175.3,"Paraguay":1173.1,"South Korea":1172.9,"Ghana":1163.2,"USA":1160.9,"Canada":1133.5,"Haiti":1134.0,"Saudi Arabia":1131.5,"Algeria":1129.0,"Tunisia":1127.6,"Czechia":1124.2,"Iran":1121.6,"Cape Verde":1110.3,"Iraq":1105.8,"South Africa":1100.2,"Jordan":1098.4,"Panama":1094.5,"Uzbekistan":1090.2,"Qatar":1085.3,"Bosnia-Herzegovina":1082.2,"New Zealand":1078.9,"DR Congo":1076.4,"Curacao":1072.1};
 
   // "13:00 UTC-6" -> the match's true UTC instant
@@ -801,11 +817,24 @@
         center = m.score ? `${m.score.ft[0]}&ndash;${m.score.ft[1]}` : "TBD";
       }
       const warn = unmatched ? ` <span style="color:#E07A6A">(unmatched team)</span>` : "";
+      // UK broadcaster line — upcoming fixtures only; absent entry => nothing.
+      let broadcast = "";
+      if(mode === "odds"){
+        const tv = TV_UK[m.num];
+        if(tv && tv.channel){
+          broadcast = tv.channel === "TBC"
+            ? `<div class="fbroadcast tbc">UK channel to be confirmed</div>`
+            : `<div class="fbroadcast">&#128250; <span class="fch">${tv.channel}</span>${tv.stream ? ` <span class="fstream">&middot; ${tv.stream}</span>` : ""}</div>`;
+        }
+      }
       return `<div class="frow">
-        <div class="ftime">${ukTime(m._kickoff)}</div>
-        ${teamCell(m.team1, codeA, "a")}
-        <div class="fcenter">${center}${warn}</div>
-        ${teamCell(m.team2, codeB, "b")}
+        <div class="fmain">
+          <div class="ftime">${ukTime(m._kickoff)}</div>
+          ${teamCell(m.team1, codeA, "a")}
+          <div class="fcenter">${center}${warn}</div>
+          ${teamCell(m.team2, codeB, "b")}
+        </div>
+        ${broadcast}
       </div>`;
     }).join("");
   }
@@ -825,16 +854,18 @@
         .filter(m => m.score && usPacificDate(m._kickoff) === yesterday)
         .sort((a, b) => b._kickoff - a._kickoff);
 
-      // Match-odds Elo: read it from our daily sim file (same-origin, already
-      // committed each morning), not the old public bucket — that path now 404s.
-      return fetch("data/daily-sim.json")
-        .then(r => r.ok ? r.json() : null)
-        .then(sim => { if(sim && sim.elo_data) ELO_DATA = sim.elo_data; })
-        .catch(() => {})   // odds are a nice-to-have; fixtures/results still render without them
-        .then(() => {
-          renderMatches("fixtureRows", todays, "odds");
-          renderMatches("resultRows", recent, "score");
-        });
+      // Match-odds Elo comes from our daily sim file (same-origin, committed each
+      // morning), the UK broadcaster from data/tv-uk.json. Both are nice-to-haves
+      // — fixtures/results still render if either fetch fails.
+      return Promise.all([
+        fetch("data/daily-sim.json").then(r => r.ok ? r.json() : null).catch(() => null),
+        fetch("data/tv-uk.json").then(r => r.ok ? r.json() : null).catch(() => null)
+      ]).then(([sim, tv]) => {
+        if(sim && sim.elo_data) ELO_DATA = sim.elo_data;
+        if(tv && tv.matches) TV_UK = tv.matches;
+        renderMatches("fixtureRows", todays, "odds");
+        renderMatches("resultRows", recent, "score");
+      });
     })
     .catch(() => {
       ["fixtureRows", "resultRows"].forEach(id => {

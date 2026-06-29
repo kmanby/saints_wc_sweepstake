@@ -15,7 +15,9 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
 - `site/` — static pages (Netlify publish dir)
   - `index.html` — main page: Saints-branded board of all 48 teams with ticket
     holders, click-through fun facts, win-probability badges. Was the pre-draw
-    countdown page; being evolved into the live tournament tracker.
+    countdown page; being evolved into the live tournament tracker. Its fixtures
+    panel lists today's matches (from openfootball) with an "on TV in the UK"
+    line per upcoming match, sourced from `data/tv-uk.json` (see below).
   - `draw.html` — the Draw Machine used live on draw day (slot-machine reveal,
     crypto-random, no-repeat pool, localStorage persistence). Job done; keep
     for posterity.
@@ -29,6 +31,20 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
     name ("Turkey", "Curacao"), each entry `{code, name, fact}` carrying the
     flagcdn code + display name ("Türkiye", "Curaçao"). Both pages fetch it;
     don't reintroduce inline copies.
+  - `data/tv-uk.json` — **curated** UK free-to-air broadcaster per match, keyed
+    by the openfootball `num` (1–104). Each entry `{channel, stream?}` e.g.
+    `{"channel":"BBC One","stream":"BBC iPlayer"}`; `"TBC"` renders a muted
+    "UK channel to be confirmed" hint, a missing entry renders nothing.
+    index.html's fixtures panel shows it as the "on TV" line under each upcoming
+    match. There is **no open feed** carrying this (decision 29 Jun, after
+    confirming openfootball has no broadcaster field and TheSportsDB's is
+    sparse/crowdsourced + rate-limited), so it's hand-curated from the BBC/ITV
+    confirmations (broadcastnow.co.uk / live-footballontv.com) — same pattern as
+    facts.json and the hard-coded spoon. BBC & ITV split the 104 games 50/50 and
+    both show the final. R32 (num 73–88) is confirmed (8 BBC / 8 ITV); R16
+    (89–96), QF (97–100), SF (101–102) and 3rd place (103) stay `"TBC"` until
+    broadcasters confirm them round-by-round; the Final (104) is on both. Keyed
+    by `num` (not teams) so it survives knockout placeholders like "W74".
   - `wallchart.html` — interactive groups + bracket. People-first labels:
     owner names label group rows, bracket cards and the champion box; the
     country lives in a hover/tap "team card" (flag, country, holder, champion
@@ -98,9 +114,10 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
   on the grid/flex item itself, not just the inner `.t3-name`.
 - Pages embed logo + flags (self-contained rendering) but index.html and
   wallchart.html now FETCH same-origin data: `data/facts.json`,
-  `data/daily-sim.json` (+ the GCS wc2026.json). All fetches degrade
-  gracefully — facts modal shows a fallback line, champion % falls back to
-  the in-page model, chart falls back to the snapshot. Keep it that way.
+  `data/daily-sim.json`, `data/tv-uk.json` (+ the GCS wc2026.json). All fetches
+  degrade gracefully — facts modal shows a fallback line, champion % falls back
+  to the in-page model, chart falls back to the snapshot, the TV line just
+  doesn't render. Keep it that way.
 
 ## Branding (use these, don't invent)
 - Maroon primary `#5C1224` / deep `#43091A`; green secondary `#0E2A1F` /
