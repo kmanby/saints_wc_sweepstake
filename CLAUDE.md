@@ -15,10 +15,21 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
 - `site/` — static pages (Netlify publish dir)
   - `index.html` — main page: Saints-branded board of all 48 teams with ticket
     holders, click-through fun facts, win-probability badges. Was the pre-draw
-    countdown page; being evolved into the live tournament tracker. Its fixtures
-    panel lists today's matches (from openfootball) with an "on TV in the UK"
-    line per upcoming match, sourced from `data/tv-uk.json` (see below). Its
-    "Recent Results" panel (yesterday's matches) renders the score via
+    countdown page; being evolved into the live tournament tracker. Both the
+    fixtures and results panels are scoped to the **current round** — derived from
+    openfootball's per-match `round` field ("Matchday N" in the group stage,
+    "Round of 32"/…/"Final" in the knockouts), where the current round is the round
+    of the next match still to be played (the round of the last match once all are
+    played). The panel headings carry the live round name (e.g. "Round of 32 —
+    Fixtures" / "— Results"). The fixtures panel lists the round's upcoming
+    (unplayed) matches sorted by date (today first), each with an "on TV in the UK"
+    line sourced from `data/tv-uk.json` (see below); it is **collapsible** — it
+    defaults to today's games and expands to the rest of the round via a "Show all N
+    this round" toggle, reusing the odds-chart collapse pattern
+    (`.frows.collapsed .frow.future` + `#fixtureMore` + `fixturesExpanded` /
+    `applyFixtureCollapse`). On a rest day (no games today) or a round with only
+    today's games it shows the full list and no toggle. Its "Recent Results" panel
+    lists the round's played matches, most recent first, rendering the score via
     `scoreHtml(score)`: a knockout tie decided in extra time / on penalties shows
     the after-extra-time score marked `AET` with the shootout score underneath
     (`score.et`/`score.p` from openfootball) — so a 1–1 penalty tie no longer
