@@ -125,8 +125,8 @@
   /* collapse to the top 20; the rest expand on demand. The wooden-spoon row is
      pinned to the bottom but always shown — it's the whole point of the table. */
   .chart-rows.collapsed .crow:nth-child(n+21):not(.spoon){display:none}
-  /* fixtures collapse to today's games; the rest of the round expand on demand */
-  .frows.collapsed .frow.future{display:none}
+  /* match panels collapse to a single day; other days expand on demand */
+  .frows.collapsed .frow.fold{display:none}
   .chart-more{text-align:center;margin-top:1.1rem}
   .more-btn{
     font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.18em;
@@ -326,15 +326,16 @@
 
 <section class="chart-wrap fixtures-wrap">
   <h2 class="section-h" id="fixturesHead">Fixtures</h2>
-  <div class="chart-sub">Kickoff times in UK time &middot; win% from the Elo model &middot; today&rsquo;s games shown, expand for the full round</div>
+  <div class="chart-sub">Kickoff times in UK time &middot; win% from the Elo model &middot; next match day shown &mdash; expand for the full round</div>
   <div id="fixtureRows" class="frows"></div>
   <div class="chart-more" id="fixtureMore"></div>
 </section>
 
 <section class="chart-wrap results-wrap">
   <h2 class="section-h" id="resultsHead">Recent Results</h2>
-  <div class="chart-sub">All results so far this round &middot; most recent first</div>
+  <div class="chart-sub">Most recent first &middot; latest match day shown &mdash; expand for the full round</div>
   <div id="resultRows" class="frows"></div>
+  <div class="chart-more" id="resultMore"></div>
 </section>
 
 <section class="chart-wrap">
@@ -573,26 +574,29 @@
   let chartExpanded = false;       // persists across re-renders (snapshot → daily sim)
   let spoonInfo = null;            // the LOCKED wooden spoon (set from daily-sim.json)
 
-  // Fixtures window collapses to today's games (mirrors the odds-chart pattern):
-  // collapsed shows only `.frow:not(.future)`, the toggle reveals the rest of the
-  // round. The button only appears when there's both a today slate and later games.
-  let fixturesExpanded = false;
-  function applyFixtureCollapse(todayCount, futureCount){
-    const rows = document.getElementById("fixtureRows");
-    const more = document.getElementById("fixtureMore");
+  // Both match panels collapse to a single match day (mirrors the odds-chart
+  // pattern): collapsed shows only `.frow:not(.fold)` — for fixtures that's the
+  // soonest upcoming day (today, or the next day with games after a rest day),
+  // for results the most recent day with results. The toggle reveals the rest of
+  // the round, and only appears when there's both a primary day and other days.
+  const MATCH_PANELS = {
+    fixtures: {rows:"fixtureRows", more:"fixtureMore", less:"Show next match day ▴", expanded:false},
+    results:  {rows:"resultRows",  more:"resultMore",  less:"Show latest day ▴",    expanded:false},
+  };
+  function applyMatchCollapse(key, primaryCount, otherCount){
+    const cfg = MATCH_PANELS[key];
+    const rows = document.getElementById(cfg.rows);
+    const more = document.getElementById(cfg.more);
     if(!rows) return;
-    // Only collapse when there's both a today slate and later games to hide. On a
-    // rest day (no today games) or a round with only today's games, show the full
-    // list and no toggle.
-    const collapsible = todayCount > 0 && futureCount > 0;
-    rows.classList.toggle("collapsed", collapsible && !fixturesExpanded);
+    const collapsible = primaryCount > 0 && otherCount > 0;
+    rows.classList.toggle("collapsed", collapsible && !cfg.expanded);
     if(!more) return;
     if(!collapsible){ more.innerHTML = ""; return; }
     more.innerHTML = `<button type="button" class="more-btn">${
-      fixturesExpanded ? "Show today only ▴" : `Show all ${todayCount + futureCount} this round ▾`}</button>`;
+      cfg.expanded ? cfg.less : `Show all ${primaryCount + otherCount} this round ▾`}</button>`;
     more.querySelector("button").addEventListener("click", ()=>{
-      fixturesExpanded = !fixturesExpanded;
-      applyFixtureCollapse(todayCount, futureCount);
+      cfg.expanded = !cfg.expanded;
+      applyMatchCollapse(key, primaryCount, otherCount);
     });
   }
 
@@ -846,7 +850,7 @@
       : mainHtml;
   }
 
-  function renderMatches(containerId, matches, mode, today){
+  function renderMatches(containerId, matches, mode, pivot){
     const el = document.getElementById(containerId);
     if(!el) return;
     if(!matches.length){
@@ -854,9 +858,10 @@
       return;
     }
     el.innerHTML = matches.map(m => {
-      // Fixtures collapse to today's games; rows on a later date are tagged
-      // `future` so the collapsed window can hide them (results never collapse).
-      const future = mode === "odds" && today && usPacificDate(m._kickoff) !== today;
+      // `pivot` is the day shown when the panel is collapsed (soonest fixture day /
+      // latest result day); rows on any other day are tagged `fold` so the
+      // collapsed window can hide them.
+      const fold = pivot && usPacificDate(m._kickoff) !== pivot;
       const codeA = NAME2CODE[m.team1], codeB = NAME2CODE[m.team2];
       const unmatched = (codeA == null && !isPlaceholder(m.team1)) || (codeB == null && !isPlaceholder(m.team2));
       let center;
@@ -881,7 +886,7 @@
             : `<div class="fbroadcast">&#128250; <span class="fch">${tv.channel}</span>${tv.stream ? ` <span class="fstream">&middot; ${tv.stream}</span>` : ""}</div>`;
         }
       }
-      return `<div class="frow${future ? " future" : ""}">
+      return `<div class="frow${fold ? " fold" : ""}">
         <div class="fmain">
           <div class="ftime">${ukTime(m._kickoff)}</div>
           ${teamCell(m.team1, codeA, "a")}
@@ -898,7 +903,6 @@
     .then(d => {
       if(!d || !d.matches) return;
       const matches = d.matches.map(m => ({...m, _kickoff: parseKickoffUTC(m.date, m.time)}));
-      const today = usPacificDate(new Date());
 
       // Both panels are scoped to the current round (openfootball's `round` field:
       // "Matchday N" in the group stage, "Round of 32"/…/"Final" in the knockouts).
@@ -909,7 +913,7 @@
       const round = next ? next.round
         : ([...matches].sort((a, b) => a._kickoff - b._kickoff).pop() || {}).round || null;
 
-      // Fixtures: the round's upcoming (unplayed) matches, today first then future.
+      // Fixtures: the round's upcoming (unplayed) matches, soonest first.
       // Results: the round's played matches, most recent first.
       const fixtures = matches
         .filter(m => m.round === round && !played(m))
@@ -917,7 +921,14 @@
       const results = matches
         .filter(m => m.round === round && played(m))
         .sort((a, b) => b._kickoff - a._kickoff);
-      const todayCount = fixtures.filter(m => usPacificDate(m._kickoff) === today).length;
+      // Collapsed, each panel shows a single day: fixtures the soonest upcoming day
+      // (= today, or the next day with games after a rest day), results the most
+      // recent day with results. Sorting already puts that day's matches first.
+      const dayOf = m => usPacificDate(m._kickoff);
+      const fxPivot = fixtures.length ? dayOf(fixtures[0]) : null;
+      const rePivot = results.length ? dayOf(results[0]) : null;
+      const fxPrimary = fixtures.filter(m => dayOf(m) === fxPivot).length;
+      const rePrimary = results.filter(m => dayOf(m) === rePivot).length;
 
       if(round){
         const fh = document.getElementById("fixturesHead");
@@ -935,9 +946,10 @@
       ]).then(([sim, tv]) => {
         if(sim && sim.elo_data) ELO_DATA = sim.elo_data;
         if(tv && tv.matches) TV_UK = tv.matches;
-        renderMatches("fixtureRows", fixtures, "odds", today);
-        renderMatches("resultRows", results, "score");
-        applyFixtureCollapse(todayCount, fixtures.length - todayCount);
+        renderMatches("fixtureRows", fixtures, "odds", fxPivot);
+        renderMatches("resultRows", results, "score", rePivot);
+        applyMatchCollapse("fixtures", fxPrimary, fixtures.length - fxPrimary);
+        applyMatchCollapse("results", rePrimary, results.length - rePrimary);
       });
     })
     .catch(() => {
