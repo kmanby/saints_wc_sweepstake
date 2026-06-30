@@ -166,7 +166,7 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
    shown as a medal (left) + £ amount (beside the name) on the three holders
    only. The payout still drives the sort (prize-winners first, then by bar)
    — it is NOT drawn as a second bar (tried it; cream Bar B added noise, Kit
-   cut it 12 Jun). Collapsed to the top 20 with a "Show all 33" toggle
+   cut it 12 Jun). Collapsed to the top 20 with a "Show all 33 people" toggle
    (`#chartRows.collapsed` + `#chartMore` button; `chartExpanded` persists
    across re-renders). Fun-fact badges hydrate from daily-sim.json, falling
    back to static `WINPROB`. Possible later toggle: "chance of holding a

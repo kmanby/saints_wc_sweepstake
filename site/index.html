@@ -603,7 +603,7 @@
     if(!more) return;
     if(total <= CHART_LIMIT){ more.innerHTML = ""; return; }
     more.innerHTML = `<button type="button" class="more-btn">${
-      chartExpanded ? "Show top 20 ▴" : `Show all ${total} ▾`}</button>`;
+      chartExpanded ? "Show top 20 people ▴" : `Show all ${total} people ▾`}</button>`;
     more.querySelector("button").addEventListener("click", ()=>{
       chartExpanded = !chartExpanded;
       applyChartCollapse(total);
