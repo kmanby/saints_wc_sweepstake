@@ -192,6 +192,13 @@
     display:flex;align-items:center;justify-content:center;gap:.3rem;
   }
   .fodds{font-size:.78rem;color:var(--gold);font-weight:700}
+  /* knockout result: main score on top, "AET" / penalty shootout below */
+  .fscore{display:inline-flex;flex-direction:column;align-items:center;line-height:1.12;max-width:100%}
+  .fscore .fsc-main{font-size:.85rem}
+  .fscore .fsc-sub{
+    font-size:.58rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--gold-soft);white-space:normal;text-align:center;
+  }
   .fempty{text-align:center;opacity:.6;font-style:italic;padding:.6rem 0;font-size:.88rem}
 
   /* ---------- stale-data banner ---------- */
@@ -795,6 +802,24 @@
       : `<div class="fteam fteam-a">${flagImg}${meta}</div>`;
   }
 
+  // Result score for a played match. openfootball worldcup.json carries ft
+  // (90 min), et (after extra time) and p (penalty shootout). For a knockout
+  // tie decided in extra time or on penalties, show the after-extra-time score
+  // marked "AET" and, when relevant, the shootout score underneath — otherwise
+  // a 1&ndash;1 penalty tie would read as an unresolved draw.
+  function scoreHtml(s){
+    if(!s || !s.ft) return "TBD";
+    const main = s.et || s.ft;                 // after-extra-time score if it went to ET
+    const mainHtml = `${main[0]}&ndash;${main[1]}`;
+    let sub = "";
+    if(s.et && s.p) sub = `AET &middot; ${s.p[0]}&ndash;${s.p[1]} pens`;
+    else if(s.p)    sub = `${s.p[0]}&ndash;${s.p[1]} pens`;
+    else if(s.et)   sub = "AET";
+    return sub
+      ? `<span class="fscore"><span class="fsc-main">${mainHtml}</span><span class="fsc-sub">${sub}</span></span>`
+      : mainHtml;
+  }
+
   function renderMatches(containerId, matches, mode){
     const el = document.getElementById(containerId);
     if(!el) return;
@@ -814,7 +839,7 @@
           center = "v";
         }
       } else {
-        center = m.score ? `${m.score.ft[0]}&ndash;${m.score.ft[1]}` : "TBD";
+        center = scoreHtml(m.score);
       }
       const warn = unmatched ? ` <span style="color:#E07A6A">(unmatched team)</span>` : "";
       // UK broadcaster line — upcoming fixtures only; absent entry => nothing.
