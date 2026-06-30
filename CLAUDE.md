@@ -28,13 +28,17 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
     `scoreHtml(score)`: a knockout tie decided in extra time / on penalties shows
     the after-extra-time score marked `AET` with the shootout score underneath
     (`score.et`/`score.p` from openfootball) — so a 1–1 penalty tie no longer
-    reads as an unresolved draw. **Both panels are collapsible** (one shared helper,
-    `applyMatchCollapse` + `MATCH_PANELS`, reusing the odds-chart pattern:
-    `.frows.collapsed .frow.fold` + `#fixtureMore`/`#resultMore`). Collapsed, each
-    shows a single match day — fixtures the soonest upcoming day (today, or the next
+    reads as an unresolved draw. In both panels the rows are grouped under match-day
+    dividers (`.fday`, captioned e.g. "Tuesday 30 June") bucketed by the **UK
+    (Europe/London, BST in summer) kickoff date** via `ukDate`/`ukDayLabel` — so a
+    late US kickoff sits under the next day's header. **Both panels are collapsible**
+    (one shared helper, `applyMatchCollapse` + `MATCH_PANELS`, reusing the odds-chart
+    pattern: `.frows.collapsed .fold` + `#fixtureMore`/`#resultMore`). Collapsed, each
+    shows a single UK match day — fixtures the soonest upcoming day (today, or the next
     day with games after a rest day), results the most recent day with results
-    (`fxPivot`/`rePivot` = the day of the first match after the soonest/most-recent
-    sort); rows on other days are tagged `.fold` and hidden. The "Show all N this
+    (`fxPivot`/`rePivot` = the `ukDate` of the first match after the soonest/most-recent
+    sort, so it lines up with the dividers); rows **and their day header** on other
+    days are tagged `.fold` and hidden. The "Show all N this
     round" toggle only appears when there's both a primary day and other days;
     a round whose remaining games are all on one day shows the full list and no
     toggle.

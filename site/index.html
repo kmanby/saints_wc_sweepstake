@@ -125,8 +125,9 @@
   /* collapse to the top 20; the rest expand on demand. The wooden-spoon row is
      pinned to the bottom but always shown — it's the whole point of the table. */
   .chart-rows.collapsed .crow:nth-child(n+21):not(.spoon){display:none}
-  /* match panels collapse to a single day; other days expand on demand */
-  .frows.collapsed .frow.fold{display:none}
+  /* match panels collapse to a single day; other days (rows + their day header)
+     expand on demand */
+  .frows.collapsed .fold{display:none}
   .chart-more{text-align:center;margin-top:1.1rem}
   .more-btn{
     font-family:'Saira Condensed',sans-serif;text-transform:uppercase;letter-spacing:.18em;
@@ -156,6 +157,14 @@
 
   /* ---------- fixtures / results rows ---------- */
   .frows{display:flex;flex-direction:column}
+  /* match-day divider grouping the rows below it (UK / BST kickoff date) */
+  .fday{
+    font-family:'Saira Condensed',sans-serif;font-weight:700;text-transform:uppercase;
+    letter-spacing:.12em;font-size:.72rem;color:var(--gold-soft);
+    padding:.45rem 0 .3rem;margin-top:.5rem;
+    border-bottom:1px solid rgba(217,169,60,.35);
+  }
+  .fday:first-child{margin-top:0}
   .frow{
     display:flex;flex-direction:column;gap:.3rem;padding:.5rem 0;
     border-bottom:1px solid rgba(217,169,60,.15);
@@ -809,7 +818,11 @@
     return new Date(naive.getTime() - offset * 3600000);
   }
   const ukTime = d => d.toLocaleTimeString("en-GB", {timeZone:"Europe/London", hour:"2-digit", minute:"2-digit"});
-  const usPacificDate = d => d.toLocaleDateString("en-US", {timeZone:"America/Los_Angeles"});
+  // Match days are bucketed by the UK (Europe/London, BST in summer) kickoff date —
+  // the day a Saints viewer watches it — so a late US kickoff lands under the next
+  // day's header. `ukDate` is the grouping key; `ukDayLabel` the divider caption.
+  const ukDate = d => d.toLocaleDateString("en-GB", {timeZone:"Europe/London"});
+  const ukDayLabel = d => d.toLocaleDateString("en-GB", {timeZone:"Europe/London", weekday:"long", day:"numeric", month:"long"});
 
   // the Elo table uses its own spellings for these three (see NAME2CODE note above)
   const ELO_ALIAS = {"Czech Republic":"Czechia","Bosnia & Herzegovina":"Bosnia-Herzegovina","Curaçao":"Curacao"};
@@ -857,11 +870,18 @@
       el.innerHTML = `<div class="fempty">${mode === "odds" ? "No fixtures left in this round" : "No results yet this round"}</div>`;
       return;
     }
+    let lastDay = null;
     el.innerHTML = matches.map(m => {
       // `pivot` is the day shown when the panel is collapsed (soonest fixture day /
       // latest result day); rows on any other day are tagged `fold` so the
       // collapsed window can hide them.
-      const fold = pivot && usPacificDate(m._kickoff) !== pivot;
+      const day = ukDate(m._kickoff);
+      const fold = pivot && day !== pivot;
+      // A match-day divider precedes the first row of each UK day; it carries the
+      // same `fold` so it hides with its day when collapsed.
+      const header = day !== lastDay
+        ? `<div class="fday${fold ? " fold" : ""}">${ukDayLabel(m._kickoff)}</div>` : "";
+      lastDay = day;
       const codeA = NAME2CODE[m.team1], codeB = NAME2CODE[m.team2];
       const unmatched = (codeA == null && !isPlaceholder(m.team1)) || (codeB == null && !isPlaceholder(m.team2));
       let center;
@@ -886,7 +906,7 @@
             : `<div class="fbroadcast">&#128250; <span class="fch">${tv.channel}</span>${tv.stream ? ` <span class="fstream">&middot; ${tv.stream}</span>` : ""}</div>`;
         }
       }
-      return `<div class="frow${fold ? " fold" : ""}">
+      return `${header}<div class="frow${fold ? " fold" : ""}">
         <div class="fmain">
           <div class="ftime">${ukTime(m._kickoff)}</div>
           ${teamCell(m.team1, codeA, "a")}
@@ -921,10 +941,11 @@
       const results = matches
         .filter(m => m.round === round && played(m))
         .sort((a, b) => b._kickoff - a._kickoff);
-      // Collapsed, each panel shows a single day: fixtures the soonest upcoming day
-      // (= today, or the next day with games after a rest day), results the most
-      // recent day with results. Sorting already puts that day's matches first.
-      const dayOf = m => usPacificDate(m._kickoff);
+      // Collapsed, each panel shows a single UK match day: fixtures the soonest
+      // upcoming day (today, or the next day with games after a rest day), results
+      // the most recent day with results — the same day grouping as the dividers.
+      // Sorting already puts that day's matches first.
+      const dayOf = m => ukDate(m._kickoff);
       const fxPivot = fixtures.length ? dayOf(fixtures[0]) : null;
       const rePivot = results.length ? dayOf(results[0]) : null;
       const fxPrimary = fixtures.filter(m => dayOf(m) === fxPivot).length;
