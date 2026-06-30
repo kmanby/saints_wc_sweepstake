@@ -335,7 +335,7 @@
 
 <section class="chart-wrap fixtures-wrap">
   <h2 class="section-h" id="fixturesHead">Fixtures</h2>
-  <div class="chart-sub">Kickoff times in UK time &middot; win% from the Elo model &middot; next match day shown &mdash; expand for the full round</div>
+  <div class="chart-sub">Kickoff times in UK time &middot; win% from the Sports4cast model (Elo fallback) &middot; next match day shown &mdash; expand for the full round</div>
   <div id="fixtureRows" class="frows"></div>
   <div class="chart-more" id="fixtureMore"></div>
 </section>
@@ -808,6 +808,10 @@
   // `num`. Loaded best-effort; absent/failed -> no broadcaster line (it's a
   // nice-to-have, never block the fixtures on it).
   let TV_UK = {};
+  // Per-team Sports4cast chances (exit-distribution) from the daily sim, used for
+  // the fixtures' per-match win% — same feed/model the wall chart bracket uses.
+  // Absent (deep-fallback days) -> feedPairProb degrades to the Elo head-to-head.
+  let TEAM_DATA = {};
   let ELO_DATA = {"Spain":1441.6,"France":1436.4,"Germany":1407.3,"England":1406.7,"Netherlands":1405.9,"Brazil":1396.0,"Argentina":1387.3,"Portugal":1385.9,"Belgium":1373.7,"Croatia":1353.5,"Colombia":1316.2,"Uruguay":1296.2,"Switzerland":1273.6,"Turkey":1262.1,"Norway":1257.8,"Mexico":1256.9,"Austria":1254.3,"Senegal":1229.8,"Morocco":1225.6,"Scotland":1221.2,"Japan":1198.5,"Ecuador":1188.8,"Sweden":1184.3,"Ivory Coast":1180.3,"Australia":1177.4,"Egypt":1175.3,"Paraguay":1173.1,"South Korea":1172.9,"Ghana":1163.2,"USA":1160.9,"Canada":1133.5,"Haiti":1134.0,"Saudi Arabia":1131.5,"Algeria":1129.0,"Tunisia":1127.6,"Czechia":1124.2,"Iran":1121.6,"Cape Verde":1110.3,"Iraq":1105.8,"South Africa":1100.2,"Jordan":1098.4,"Panama":1094.5,"Uzbekistan":1090.2,"Qatar":1085.3,"Bosnia-Herzegovina":1082.2,"New Zealand":1078.9,"DR Congo":1076.4,"Curacao":1072.1};
 
   // "13:00 UTC-6" -> the match's true UTC instant
@@ -831,6 +835,37 @@
     const ea = (eloOf(teamA) ?? 1000) + (COHOST_TEAMS.has(teamA) ? COHOST_BOOST : 0);
     const eb = (eloOf(teamB) ?? 1000) + (COHOST_TEAMS.has(teamB) ? COHOST_BOOST : 0);
     return 1 / (1 + Math.pow(10, (eb - ea) / 400));
+  }
+  // Per-match win% from the Sports4cast feed — mirrors wallchart.html's
+  // feedReachStrength/feedPairProb (keep them in parity). The feed gives no
+  // head-to-head, so a knockout tie's odds are the ratio of each team's
+  // "reach the next round" strength, read off the chances exit-distribution
+  // (group/r32/r16/qf/sf/final/win sum to 100): an R32 winner reaches the R16,
+  // an R16 winner the QF, … and the final's strength is `win`. Elo (eloWinPct)
+  // is the tie / no-feed fallback. team_data shares elo_data's spellings, so
+  // resolve names through the same ELO_ALIAS.
+  const STAGE_OF_ROUND = {
+    "Round of 32":"r32","Round of 16":"r16",
+    "Quarter-finals":"qf","Quarter-final":"qf",
+    "Semi-finals":"sf","Semi-final":"sf","Final":"final"
+  };
+  const chancesOf = team => (TEAM_DATA[ELO_ALIAS[team] || team] || {}).chances || null;
+  function feedReachStrength(team, stage){
+    const c = chancesOf(team);
+    if(!c) return null;
+    switch(stage){
+      case "r32":   return c.r16 + c.qf + c.sf + c.final + c.win;
+      case "r16":   return c.qf + c.sf + c.final + c.win;
+      case "qf":    return c.sf + c.final + c.win;
+      case "sf":    return c.final + c.win;
+      case "final": return c.win;
+      default:      return null;  // group stage / 3rd-place playoff: no feed odds
+    }
+  }
+  function feedPairProb(a, b, stage){
+    const sa = feedReachStrength(a, stage), sb = feedReachStrength(b, stage);
+    if(sa === null || sb === null || sa + sb <= 0 || sa === sb) return eloWinPct(a, b);
+    return sa / (sa + sb);
   }
   // placeholders for unresolved knockout slots, e.g. "W101", "3A/B/C/D/F"
   const isPlaceholder = team => /^[\dWL]/.test(team);
@@ -863,7 +898,7 @@
       : mainHtml;
   }
 
-  function renderMatches(containerId, matches, mode, pivot){
+  function renderMatches(containerId, matches, mode, pivot, stage){
     const el = document.getElementById(containerId);
     if(!el) return;
     if(!matches.length){
@@ -887,7 +922,7 @@
       let center;
       if(mode === "odds"){
         if(codeA != null && codeB != null && eloOf(m.team1) != null && eloOf(m.team2) != null){
-          const pA = eloWinPct(m.team1, m.team2);
+          const pA = feedPairProb(m.team1, m.team2, stage);
           center = `<span class="fodds">${(pA * 100).toFixed(0)}%</span> v <span class="fodds">${((1 - pA) * 100).toFixed(0)}%</span>`;
         } else {
           center = "v";
@@ -966,8 +1001,9 @@
         fetch("data/tv-uk.json").then(r => r.ok ? r.json() : null).catch(() => null)
       ]).then(([sim, tv]) => {
         if(sim && sim.elo_data) ELO_DATA = sim.elo_data;
+        if(sim && sim.team_data) TEAM_DATA = sim.team_data;
         if(tv && tv.matches) TV_UK = tv.matches;
-        renderMatches("fixtureRows", fixtures, "odds", fxPivot);
+        renderMatches("fixtureRows", fixtures, "odds", fxPivot, STAGE_OF_ROUND[round] || null);
         renderMatches("resultRows", results, "score", rePivot);
         applyMatchCollapse("fixtures", fxPrimary, fixtures.length - fxPrimary);
         applyMatchCollapse("results", rePrimary, results.length - rePrimary);

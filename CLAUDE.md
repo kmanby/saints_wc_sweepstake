@@ -22,7 +22,10 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
     of the next match still to be played (the round of the last match once all are
     played). The panel headings carry the live round name (e.g. "Round of 32 —
     Fixtures" / "— Results"). The fixtures panel lists the round's upcoming
-    (unplayed) matches sorted by date (soonest first), each with an "on TV in the
+    (unplayed) matches sorted by date (soonest first), each with a per-match
+    **win% from the Sports4cast feed** (`feedPairProb`/`feedReachStrength` — the
+    same reach-next-round model the wall chart bracket uses, see Daily sim
+    subsystem; Elo `eloWinPct` is the no-feed / tie fallback) and an "on TV in the
     UK" line sourced from `data/tv-uk.json` (see below); the "Recent Results" panel
     lists the round's played matches, most recent first, rendering the score via
     `scoreHtml(score)`: a knockout tie decided in extra time / on penalties shows
@@ -241,9 +244,12 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
   KO match; only the third-place playoff goes to the Elo favourite) so the
   pre-filled wall chart and the index chart's "simulated draw" bar always tell
   the same story. The shared reach-next-round strength lives in `feedReachStrength`
-  + `feedFavourite` (sim) / `feedReachStrength` + `feedPairProb` (wallchart.html),
+  + `feedFavourite` (sim) / `feedReachStrength` + `feedPairProb` (wallchart.html)
+  / `feedReachStrength` + `feedPairProb` (index.html, for the **fixtures-panel
+  per-match win%** — keyed off the openfootball round via `STAGE_OF_ROUND`),
   with identical per-stage formulas and tie-handling; Elo is only the tie / no-feed
-  fallback. If the autosim logic in either file changes, change the other to match.
+  fallback. If the autosim or per-match-odds logic in any of the three files
+  changes, change the others to match.
 - index.html odds-chart source priority: daily-sim.json → wall-chart
   postMessage champion dist → hard-coded snapshot. Medals + £ render only
   when `modal` is present (fallback sources draw the bar alone, no podium).
