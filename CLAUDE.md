@@ -15,14 +15,29 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
 - `site/` — static pages (Netlify publish dir)
   - `index.html` — main page: Saints-branded board of all 48 teams with ticket
     holders, click-through fun facts, win-probability badges. Was the pre-draw
-    countdown page; being evolved into the live tournament tracker. Its fixtures
-    panel lists today's matches (from openfootball) with an "on TV in the UK"
-    line per upcoming match, sourced from `data/tv-uk.json` (see below). Its
-    "Recent Results" panel (yesterday's matches) renders the score via
+    countdown page; being evolved into the live tournament tracker. Both the
+    fixtures and results panels are scoped to the **current round** — derived from
+    openfootball's per-match `round` field ("Matchday N" in the group stage,
+    "Round of 32"/…/"Final" in the knockouts), where the current round is the round
+    of the next match still to be played (the round of the last match once all are
+    played). The panel headings carry the live round name (e.g. "Round of 32 —
+    Fixtures" / "— Results"). The fixtures panel lists the round's upcoming
+    (unplayed) matches sorted by date (soonest first), each with an "on TV in the
+    UK" line sourced from `data/tv-uk.json` (see below); the "Recent Results" panel
+    lists the round's played matches, most recent first, rendering the score via
     `scoreHtml(score)`: a knockout tie decided in extra time / on penalties shows
     the after-extra-time score marked `AET` with the shootout score underneath
     (`score.et`/`score.p` from openfootball) — so a 1–1 penalty tie no longer
-    reads as an unresolved draw.
+    reads as an unresolved draw. **Both panels are collapsible** (one shared helper,
+    `applyMatchCollapse` + `MATCH_PANELS`, reusing the odds-chart pattern:
+    `.frows.collapsed .frow.fold` + `#fixtureMore`/`#resultMore`). Collapsed, each
+    shows a single match day — fixtures the soonest upcoming day (today, or the next
+    day with games after a rest day), results the most recent day with results
+    (`fxPivot`/`rePivot` = the day of the first match after the soonest/most-recent
+    sort); rows on other days are tagged `.fold` and hidden. The "Show all N this
+    round" toggle only appears when there's both a primary day and other days;
+    a round whose remaining games are all on one day shows the full list and no
+    toggle.
   - `draw.html` — the Draw Machine used live on draw day (slot-machine reveal,
     crypto-random, no-repeat pool, localStorage persistence). Job done; keep
     for posterity.
@@ -155,7 +170,7 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
    shown as a medal (left) + £ amount (beside the name) on the three holders
    only. The payout still drives the sort (prize-winners first, then by bar)
    — it is NOT drawn as a second bar (tried it; cream Bar B added noise, Kit
-   cut it 12 Jun). Collapsed to the top 20 with a "Show all 33" toggle
+   cut it 12 Jun). Collapsed to the top 20 with a "Show all 33 people" toggle
    (`#chartRows.collapsed` + `#chartMore` button; `chartExpanded` persists
    across re-renders). Fun-fact badges hydrate from daily-sim.json, falling
    back to static `WINPROB`. Possible later toggle: "chance of holding a
