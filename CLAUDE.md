@@ -17,7 +17,12 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
     holders, click-through fun facts, win-probability badges. Was the pre-draw
     countdown page; being evolved into the live tournament tracker. Its fixtures
     panel lists today's matches (from openfootball) with an "on TV in the UK"
-    line per upcoming match, sourced from `data/tv-uk.json` (see below).
+    line per upcoming match, sourced from `data/tv-uk.json` (see below). Its
+    "Recent Results" panel (yesterday's matches) renders the score via
+    `scoreHtml(score)`: a knockout tie decided in extra time / on penalties shows
+    the after-extra-time score marked `AET` with the shootout score underneath
+    (`score.et`/`score.p` from openfootball) — so a 1–1 penalty tie no longer
+    reads as an unresolved draw.
   - `draw.html` — the Draw Machine used live on draw day (slot-machine reveal,
     crypto-random, no-repeat pool, localStorage persistence). Job done; keep
     for posterity.
@@ -51,7 +56,19 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
     % from daily-sim.json with the in-page Elo model as fallback, fun fact).
     Tapping a FLAG pins the card; tapping the rest of a bracket row still
     advances the team — keep that split, it's what preserves tap-to-advance
-    on touch. On load it `postMessage`s the parent two things: `s4c-height`
+    on touch. **Real knockout results lock the bracket**: on load it fetches
+    openfootball's `worldcup.json` (same feed index.html uses), and
+    `buildKoResults`/`applyKoResults` match each played tie (match `num` ≥ 73)
+    to its bracket slot by team-pair, lock the real winner into `kwins` and the
+    score into `koScore[slotId]` (`{a,b,aet,pa,pb}`), re-locking on every
+    `renderKO()`. Locked ties are immutable — `pickWinner` and the KO autosim
+    (`_koAfSet`/`_koAfClear`) skip any slot with a `koScore`, and `applyKoResults`
+    runs before the init autosim so an upset (e.g. a penalty winner) propagates
+    into the R16+ pre-fill instead of the model's favourite. A played card shows
+    the real goals (after extra time if it went to ET), the shootout score in
+    parens and a small `aet` tag instead of the win %. worldcup.json carries
+    `score.ft`/`score.et`/`score.p`; three team names differ from ours, mapped by
+    `OF_NAME` (Bosnia & Herzegovina / Curaçao / Czech Republic). On load it `postMessage`s the parent two things: `s4c-height`
     (iframe auto-height) and `s4c-champ-dist` (its champion distribution, feed
     if loaded else the in-page model) — the latter is index.html's middle-tier
     odds fallback (see Daily sim subsystem). Group finishing positions are set
@@ -114,10 +131,12 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
   on the grid/flex item itself, not just the inner `.t3-name`.
 - Pages embed logo + flags (self-contained rendering) but index.html and
   wallchart.html now FETCH same-origin data: `data/facts.json`,
-  `data/daily-sim.json`, `data/tv-uk.json` (+ the GCS wc2026.json). All fetches
-  degrade gracefully — facts modal shows a fallback line, champion % falls back
-  to the in-page model, chart falls back to the snapshot, the TV line just
-  doesn't render. Keep it that way.
+  `data/daily-sim.json`, `data/tv-uk.json` (+ the GCS wc2026.json) — and both
+  also fetch openfootball's `worldcup.json` (index for fixtures/results,
+  wallchart for the real KO ties). All fetches degrade gracefully — facts modal
+  shows a fallback line, champion % falls back to the in-page model, chart falls
+  back to the snapshot, the TV line just doesn't render, and without worldcup.json
+  the bracket just stays on the model's prediction. Keep it that way.
 
 ## Branding (use these, don't invent)
 - Maroon primary `#5C1224` / deep `#43091A`; green secondary `#0E2A1F` /
@@ -142,9 +161,14 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
    back to static `WINPROB`. Possible later toggle: "chance of holding a
    finalist" from stage probabilities.
 3. [DONE — built from Kit's supplied HTML] **Wall chart** with people-first
-   labels + team cards. Next phase: real results lock in as the tournament
-   progresses (`.tr.locked` CSS hooks exist); may auto-populate from
-   `/api/fixtures` if it carries results — confirm first.
+   labels + team cards. [DONE 30 Jun] **Real knockout results lock in** from
+   openfootball's `worldcup.json` (not `/api/fixtures` — that proxy is dead on
+   the burned key, and worldcup.json already carries `ft`/`et`/`p` per match):
+   `buildKoResults`/`applyKoResults` join played ties to bracket slots and lock
+   the winner + score (incl. extra-time + penalty). index.html's "Recent Results"
+   shows AET / penalty scores via `scoreHtml`. Group standings still come from the
+   daily-sim p1–p4 (already collapsed to 0/100 once a group finishes), which is
+   what lines the R32 matchups up with the real ties.
 4. Retire countdown remnants on index.html as tracker features land.
 5. [DONE 28 Jun] **Wooden spoon** locked from real results. All six bottom
    teams finished the group stage on 0 pts, so goal difference settled it:

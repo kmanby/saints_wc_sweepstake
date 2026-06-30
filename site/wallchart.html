@@ -300,6 +300,13 @@ body{
 .mt.tbd-row{cursor:default}
 .mt .wp{margin-left:auto;font-size:0.56rem;font-weight:700;color:var(--muted);flex-shrink:0;padding-top:1px}
 .mt.won .wp{color:#fff}
+/* Played knockout tie: the real goals (after extra time if it went to ET)
+   replace the win %, with the shootout score in parens and a small AET tag. */
+.mt .wp.ko-sc{font-size:0.74rem;font-weight:800;color:var(--white);}
+.mt .wp.ko-sc .ko-pen{font-size:0.56rem;font-weight:700;color:var(--lime);}
+.mt .wp.ko-sc .ko-aet{font-size:0.48rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--dimmer);}
+.mt.won .wp.ko-sc{color:#fff;}
+.mt.played{cursor:default;}
 .mt.ghost{
   background:rgba(168,213,71,0.06);
   color:rgba(168,213,71,0.65);
@@ -736,21 +743,101 @@ function infoFlag(team){ return `<span class="info-tap" role="button" aria-label
 let FACTS = {};            // team -> {code, name, fact}
 let CHAMP_PCT = null;      // team -> champion % from data/daily-sim.json
 let CHAMP_FALLBACK = null; // team -> champion % from the in-page model (set at init)
+
+// ─── REAL KNOCKOUT RESULTS ───────────────────────────────────────────
+// Played knockout ties lock the bracket to the real outcome. Source is
+// openfootball's worldcup.json (the same feed index.html uses for results),
+// which records ft / et / p per match — so it carries the after-extra-time
+// score AND the penalty shootout, no manual override needed. koResults holds
+// the played ties; koScore maps a bracket slot id -> its score once the tie is
+// matched to a slot (a/b are the goals shown per side — after extra time if it
+// went to ET; pa/pb the shootout score; aet flags an extra-time tie).
+const WORLDCUP_JSON_URL =
+  "https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json";
+let KO_MATCHES = null;
+let koResults = [];
+let koScore = {};
+
+// openfootball spells three of our teams differently — map to our canonical
+// (sim) names so the team-pair join onto bracket slots lands. Same name-mapping
+// discipline as CLAUDE.md's "known gotchas".
+const OF_NAME = {
+  "Bosnia & Herzegovina": "Bosnia-Herzegovina",
+  "Curaçao": "Curacao",
+  "Czech Republic": "Czechia",
+};
+const ofTeam = t => OF_NAME[t] || t;
+
+// Parse played WC knockout ties (match num >= 73) out of worldcup.json.
+function buildKoResults(matches){
+  koResults = [];
+  for(const m of (matches || [])){
+    if(!m || (m.num || 0) < 73 || !m.score || !m.score.ft) continue;  // knockouts, played
+    const ft = m.score.ft, et = m.score.et || null, pen = m.score.p || null;
+    const home = ofTeam(m.team1), away = ofTeam(m.team2);
+    const fin = et || ft;                       // goals shown = after-ET if it went to ET
+    const winner = pen ? (pen[0] > pen[1] ? home : away)
+                 : fin[0] > fin[1] ? home : fin[1] > fin[0] ? away : null;
+    koResults.push({
+      home, away,
+      hg: fin[0], ag: fin[1],
+      aet: !!et,
+      penH: pen ? pen[0] : null,
+      penA: pen ? pen[1] : null,
+      winner,
+    });
+  }
+}
+
+// Match each played tie to its bracket slot by team-pair and lock in the score
+// + winner. Winners feed the next round's slots, so iterate until nothing new
+// resolves. Called at the top of renderKO() (and once before the init autosim).
+function applyKoResults(){
+  koScore = {};
+  if(!koResults.length) return;
+  for(let pass = 0; pass < 6; pass++){
+    const mm = getMatchups();
+    const slots = [...mm.leftR32, ...mm.rightR32, ...mm.r16, ...mm.qf, ...mm.sf, ...mm.final];
+    let changed = false;
+    for(const sl of slots){
+      if(!sl || !sl.a || !sl.b || koScore[sl.id]) continue;
+      const r = koResults.find(x =>
+        (x.home === sl.a && x.away === sl.b) || (x.home === sl.b && x.away === sl.a));
+      if(!r) continue;
+      const homeIsA = (r.home === sl.a);
+      koScore[sl.id] = {
+        a: homeIsA ? r.hg : r.ag,
+        b: homeIsA ? r.ag : r.hg,
+        aet: r.aet,
+        pa: r.penH == null ? null : (homeIsA ? r.penH : r.penA),
+        pb: r.penH == null ? null : (homeIsA ? r.penA : r.penH),
+      };
+      if(r.winner && kwins[sl.id] !== r.winner){ kwins[sl.id] = r.winner; changed = true; }
+    }
+    if(!changed) break;
+  }
+}
+
 fetch("data/facts.json")
   .then(r => r.ok ? r.json() : null)
   .then(d => { if(d) FACTS = d; })
   .catch(()=>{});
-fetch("data/daily-sim.json")
-  .then(r => r.ok ? r.json() : null)
-  .then(d => {
-    if(!d) return;
+// daily-sim drives the odds model; openfootball worldcup.json carries the real
+// match results (incl. extra-time + penalty scores) that lock the bracket. Both
+// degrade gracefully — without daily-sim we fall back to the embedded snapshot,
+// without the results feed the bracket simply stays on the model's prediction.
+Promise.all([
+  fetch("data/daily-sim.json").then(r => r.ok ? r.json() : null).catch(()=>null),
+  fetch(WORLDCUP_JSON_URL).then(r => r.ok ? r.json() : null).catch(()=>null),
+]).then(([d, wc]) => {
+  if(d){
     if(d.champion) CHAMP_PCT = d.champion;
     if(d.team_data) TEAM_DATA = d.team_data;
     if(d.elo_data) ELO = d.elo_data;
     if(d.third_slot_dists) THIRD_SLOT_DISTS = d.third_slot_dists;
-  })
-  .catch(()=>{})
-  .finally(initPage);
+  }
+  if(wc && wc.matches){ KO_MATCHES = wc.matches; buildKoResults(KO_MATCHES); }
+}).finally(initPage);
 
 function champPctFor(team){
   if(CHAMP_PCT && CHAMP_PCT[team] !== undefined) return CHAMP_PCT[team];
@@ -1749,6 +1836,7 @@ function drawConnectorsMobile(){
 }
 
 function renderKO(){
+  applyKoResults();   // lock in any played ties (+ advance winners) before drawing
   const {leftR32, rightR32, r16, qf, sf, final}=getMatchups();
   const wrap = document.getElementById("bracketWrap");
   wrap.innerHTML = "";
@@ -2002,6 +2090,7 @@ function buildMatchCard(m, isR32, compact=false){
 
   let pA=null,pB=null;
   if(a&&b){pA=feedPairProb(a,b,roundOf(id));pB=1-pA;}
+  const played=koScore[id];   // real result, if this tie has been played
 
   [a,b].forEach((team,idx)=>{
     const row=document.createElement("div");
@@ -2023,15 +2112,27 @@ function buildMatchCard(m, isR32, compact=false){
 
     const isW=winner===team;
     const isL=winner&&winner!==team;
-    row.className=`mt${isW?" won":""}${isL?" lst":""}`;
+    row.className=`mt${isW?" won":""}${isL?" lst":""}${played?" played":""}`;
 
-    const wp=prob!==null?`<span class="wp">${(prob*100).toFixed(0)}%</span>`:"";
+    // Played tie: show the real goals (after extra time if it went to ET), the
+    // shootout score in parens and a small AET tag. Otherwise show the win %.
+    let wp;
+    if(played){
+      const g=idx===0?played.a:played.b;
+      const pen=idx===0?played.pa:played.pb;
+      wp=`<span class="wp ko-sc">${g}`
+        + (pen!=null?` <span class="ko-pen">(${pen})</span>`:"")
+        + (played.aet?` <span class="ko-aet">aet</span>`:"")
+        + `</span>`;
+    } else {
+      wp=prob!==null?`<span class="wp">${(prob*100).toFixed(0)}%</span>`:"";
+    }
     // people-first: owner name labels the row; tapping the flag opens the
     // team card without consuming the row's tap-to-advance
     row.innerHTML=`<span class="mt-name">${infoFlag(team)}${ownLabel(team)}</span>${wp}`;
 
     row.addEventListener("click",()=>{
-      if(!a||!b) return;
+      if(!a||!b||koScore[id]) return;   // played ties are locked to the real result
       pickWinner(id,team);
     });
     row.addEventListener("mouseenter",()=>{ if(team&&!isL) showBracketProjection(team,id); showTeamCard(team,row); });
@@ -2044,6 +2145,7 @@ function buildMatchCard(m, isR32, compact=false){
 }
 
 function pickWinner(id,team){
+  if(koScore[id]) return;   // played tie — winner is locked to the real result
   const prev=kwins[id];
   if(prev===team){
     clearDownstream(id);
@@ -2119,6 +2221,7 @@ function koAutoFill(roundKey){
 function _koAfSet(roundKey){
   _clearDistCache();
   KO_ROUNDS[roundKey].forEach(id=>{
+    if(koScore[id]) return;   // real result is locked — don't autosim over it
     const w=_mostLikelyWinner(id);
     if(w) kwins[id]=w;
   });
@@ -2126,7 +2229,7 @@ function _koAfSet(roundKey){
 }
 
 function _koAfClear(roundKey){
-  KO_ROUNDS[roundKey].forEach(id=>delete kwins[id]);
+  KO_ROUNDS[roundKey].forEach(id=>{ if(!koScore[id]) delete kwins[id]; });
   koAutoFillActive.delete(roundKey);
 }
 
@@ -2198,6 +2301,10 @@ function initPage() {
   grpAutoFillActive = true;
   const _afBtn = document.getElementById("grpAfBtn");
   if(_afBtn) _afBtn.classList.add("active");
+  // Lock any real KO results BEFORE the autosim fills downstream rounds, so an
+  // upset (e.g. a penalty-shootout winner) propagates into the R16+ pre-fill
+  // instead of the model's favourite.
+  applyKoResults();
   if(typeof koAutoFill === "function") koAutoFill('ALL');
   renderGroups(); renderKO(); sendH();
   publishChampDist();
