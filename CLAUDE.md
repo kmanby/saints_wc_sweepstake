@@ -68,9 +68,11 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
     sparse/crowdsourced + rate-limited), so it's hand-curated from the BBC/ITV
     confirmations (broadcastnow.co.uk / live-footballontv.com) — same pattern as
     facts.json and the hard-coded spoon. BBC & ITV split the 104 games 50/50 and
-    both show the final. R32 (num 73–88) is confirmed (8 BBC / 8 ITV); R16
-    (89–96), QF (97–100), SF (101–102) and 3rd place (103) stay `"TBC"` until
-    broadcasters confirm them round-by-round; the Final (104) is on both. Keyed
+    both show the final. R32 (num 73–88) is confirmed (8 BBC / 8 ITV) and R16
+    (89–96) is confirmed (4 BBC / 4 ITV: BBC 89/92/93/94, ITV 90/91/95/96); QF
+    (97–100), SF (101–102) and 3rd place (103) stay `"TBC"` until broadcasters
+    confirm them round-by-round (as of 6 Jul the QF channels are unassigned even
+    where the teams are known); the Final (104) is on both. Keyed
     by `num` (not teams) so it survives knockout placeholders like "W74".
   - `wallchart.html` — interactive groups + bracket. People-first labels:
     owner names label group rows, bracket cards and the champion box; the
