@@ -845,6 +845,8 @@ function champPctFor(team){
   return null;
 }
 function fmtChampPct(v){
+  // an exact 0 is the feed saying the team is out — don't soften it to "<0.1%"
+  if(v === 0) return "0% &mdash; knocked out";
   return v < 0.1 ? "&lt;0.1%" : (v < 10 ? v.toFixed(1) : v.toFixed(0)) + "%";
 }
 

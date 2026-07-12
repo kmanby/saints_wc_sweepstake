@@ -529,9 +529,11 @@
     cardTitle.textContent=n;
     document.getElementById("cardHolder").innerHTML = "Held by " + OWNERS[c];
     cardFact.textContent=FACT_BY_CODE[c] || "Fun fact unavailable — data/facts.json didn't load.";
-    // live daily-sim odds when present, snapshot string otherwise
+    // live daily-sim odds when present, snapshot string otherwise. A live 0 is
+    // the feed saying the team is genuinely out — say so, don't show "<0.1%".
     const live = CHAMP_BY_CODE[c];
     const pctStr = live===undefined ? WINPROB[c]
+      : live === 0 ? "0% — knocked out"
       : live < 0.1 ? "<0.1%" : live.toFixed(1).replace(/\.0$/,"") + "%";
     document.getElementById("cardProb").textContent = "Win probability: " + pctStr;
     overlay.classList.add("open");
@@ -623,7 +625,9 @@
     });
   }
 
-  function renderOddsChart(winpc, srcText, unmatched, modal){
+  // `zeroIsOut`: in live feed data a 0 means the team really is eliminated, so
+  // show a plain "0%"; the pre-draw snapshot's 0 meant "rounded below 0.1%".
+  function renderOddsChart(winpc, srcText, unmatched, modal, zeroIsOut){
     const peopleMap = {};
     for(const [code, ticket] of Object.entries(OWNERS)){
       const person = ticket.replace(/\s+\d+$/,"");
@@ -654,7 +658,7 @@
       return aS - bS || a.bestPos - b.bestPos || b.sum - a.sum;
     });
 
-    const fmtPct = v => v===0 ? "<0.1%" : v.toFixed(1) + "%";
+    const fmtPct = v => v===0 ? (zeroIsOut ? "0%" : "<0.1%") : v.toFixed(1) + "%";
     const maxSum = Math.max(...standings.map(r=>r.sum)) || 1;
 
     const chartRows = document.getElementById("chartRows");
@@ -779,7 +783,7 @@
         ? `Our ${(d.sims||0).toLocaleString()}-sim model &middot; ${when}`
         : `Official Sports4cast ${(d.source_sims||10000).toLocaleString()}-sim`
           + (when ? ` &middot; ${when}` : "");
-      renderOddsChart(live, label, unmatched, modal);
+      renderOddsChart(live, label, unmatched, modal, true);
     })
     .catch(()=> setSourceBanner("sim-fallback"));
 
@@ -796,7 +800,7 @@
       if(code) live[code] = v/total*100;
       else unmatched.push(team);
     }
-    renderOddsChart(live, "Live &middot; derived from today&rsquo;s wall-chart model", unmatched);
+    renderOddsChart(live, "Live &middot; derived from today&rsquo;s wall-chart model", unmatched, null, true);
   });
 
   // ---------- today's fixtures + recent results (live, openfootball schedule) ----------
@@ -958,6 +962,26 @@
     .then(d => {
       if(!d || !d.matches) return;
       const matches = d.matches.map(m => ({...m, _kickoff: parseKickoffUTC(m.date, m.time)}));
+
+      // Resolve "W99"/"L101" knockout placeholders from ties already played —
+      // openfootball can lag a day filling them in, which left a decided
+      // semi-final reading "W99 v W100" with no odds or holders. W = winner,
+      // L = loser of that match `num`; the shootout (p), else extra-time (et),
+      // else full-time (ft) score decides it. An unplayed reference stays a
+      // placeholder, so the final/3rd place resolve themselves as ties finish.
+      const byNum = {};
+      matches.forEach(m => { if(m.num != null) byNum[m.num] = m; });
+      const koWinner = m => {
+        if(!m || !m.score || !m.score.ft) return null;
+        const s = m.score.p || m.score.et || m.score.ft;
+        return s[0] === s[1] ? null : s[0] > s[1] ? m.team1 : m.team2;
+      };
+      matches.forEach(m => ["team1", "team2"].forEach(k => {
+        const ph = /^([WL])(\d+)$/.exec(m[k] || "");
+        const ref = ph && byNum[+ph[2]];
+        const win = ref && koWinner(ref);
+        if(win) m[k] = ph[1] === "W" ? win : (win === ref.team1 ? ref.team2 : ref.team1);
+      }));
 
       // Both panels are scoped to the current round (openfootball's `round` field:
       // "Matchday N" in the group stage, "Round of 32"/…/"Final" in the knockouts).
