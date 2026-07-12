@@ -14,7 +14,12 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
 ## Repo layout
 - `site/` — static pages (Netlify publish dir)
   - `index.html` — main page: Saints-branded board of all 48 teams with ticket
-    holders, click-through fun facts, win-probability badges. Was the pre-draw
+    holders, click-through fun facts, win-probability badges. A live-feed
+    champion % of exactly 0 means the team is genuinely out, so it renders as
+    "0% — knocked out" on the fun-fact card and a plain "0%" in the odds chart
+    (`renderOddsChart`'s `zeroIsOut` flag; wallchart.html's team card does the
+    same via `fmtChampPct`) — only the pre-draw snapshot still softens 0 to
+    "<0.1%", where it meant "rounded down". Was the pre-draw
     countdown page; being evolved into the live tournament tracker. Both the
     fixtures and results panels are scoped to the **current round** — derived from
     openfootball's per-match `round` field ("Matchday N" in the group stage,
@@ -26,7 +31,12 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
     **win% from the Sports4cast feed** (`feedPairProb`/`feedReachStrength` — the
     same reach-next-round model the wall chart bracket uses, see Daily sim
     subsystem; Elo `eloWinPct` is the no-feed / tie fallback) and an "on TV in the
-    UK" line sourced from `data/tv-uk.json` (see below); the "Recent Results" panel
+    UK" line sourced from `data/tv-uk.json` (see below). Knockout placeholders
+    ("W99"/"L101") are **resolved client-side from ties already played**
+    (shootout → ET → FT score decides it) — openfootball can lag a day filling
+    them in, which once left a decided semi reading "W99 v W100" with no
+    odds/holders/TV line; an unplayed reference stays a placeholder, so the
+    final/3rd place fill themselves in as the semis finish. The "Recent Results" panel
     lists the round's played matches, most recent first, rendering the score via
     `scoreHtml(score)`: a knockout tie decided in extra time / on penalties shows
     the after-extra-time score marked `AET` with the shootout score underneath
@@ -72,8 +82,9 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
     (89–96) is confirmed (4 BBC / 4 ITV: BBC 89/92/93/94, ITV 90/91/95/96) and
     QF (97–100) is confirmed (8 Jul: BBC 98 only, ITV 97/99/100 — ITV took three
     of the four, so it is **not** a 2/2 split; don't "fix" it to even out); SF
-    (101–102) and 3rd place (103) stay `"TBC"` until broadcasters confirm them
-    round-by-round; the Final (104) is on both. Keyed
+    is confirmed (12 Jul: 101 France–Spain on ITV1, 102 England–Argentina on
+    BBC One — one semi each); the 3rd place (103) stays `"TBC"` until
+    broadcasters confirm it; the Final (104) is on both. Keyed
     by `num` (not teams) so it survives knockout placeholders like "W74".
   - `wallchart.html` — interactive groups + bracket. People-first labels:
     owner names label group rows, bracket cards and the champion box; the
