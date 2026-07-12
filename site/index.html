@@ -516,7 +516,10 @@
     grid.appendChild(d);
   });
 
-  const WINPROB = {"es":"11%","fr":"11%","gb-eng":"10%","de":"8%","nl":"8%","pt":"7%","br":"7%","ar":"6%","be":"6%","hr":"4%","no":"3%","ch":"3%","tr":"3%","co":"2%","at":"2%","uy":"2%","se":"1%","gb-sct":"1%","ba":"0.9%","mx":"0.9%","py":"0.5%","ec":"0.3%","ma":"0.3%","cz":"0.3%","sn":"0.2%","eg":"0.2%","ci":"0.2%","dz":"0.1%","kr":"0.1%","ir":"0.1%","jp":"0.1%","us":"0.1%","au":"0.1%","za":"<0.1%","tn":"<0.1%","ca":"<0.1%","cd":"<0.1%","cv":"<0.1%","jo":"<0.1%","iq":"<0.1%","gh":"<0.1%","uz":"<0.1%","qa":"<0.1%","sa":"<0.1%","cw":"<0.1%","ht":"<0.1%","pa":"<0.1%","nz":"<0.1%"};
+  // Fallback only (shown while/if data/daily-sim.json can't load) — a snapshot of
+  // the official feed, refreshed by hand when it's gone badly stale. As of 12 Jul
+  // only the four semi-finalists are alive, so the zeros are real knockouts.
+  const WINPROB = {"fr":"29.6%","ar":"28%","es":"22.1%","gb-eng":"20.2%","dz":"0% — knocked out","au":"0% — knocked out","at":"0% — knocked out","be":"0% — knocked out","ba":"0% — knocked out","br":"0% — knocked out","ca":"0% — knocked out","cv":"0% — knocked out","co":"0% — knocked out","hr":"0% — knocked out","cw":"0% — knocked out","cz":"0% — knocked out","cd":"0% — knocked out","ec":"0% — knocked out","eg":"0% — knocked out","de":"0% — knocked out","gh":"0% — knocked out","ht":"0% — knocked out","ir":"0% — knocked out","iq":"0% — knocked out","ci":"0% — knocked out","jp":"0% — knocked out","jo":"0% — knocked out","mx":"0% — knocked out","ma":"0% — knocked out","nl":"0% — knocked out","nz":"0% — knocked out","no":"0% — knocked out","pa":"0% — knocked out","py":"0% — knocked out","pt":"0% — knocked out","qa":"0% — knocked out","sa":"0% — knocked out","gb-sct":"0% — knocked out","sn":"0% — knocked out","za":"0% — knocked out","kr":"0% — knocked out","se":"0% — knocked out","ch":"0% — knocked out","tn":"0% — knocked out","tr":"0% — knocked out","us":"0% — knocked out","uy":"0% — knocked out","uz":"0% — knocked out"};
 
   // modal
   const overlay=document.getElementById("overlay"),
@@ -552,12 +555,14 @@
   fillRibbon("ribbonTop");
   fillRibbon("ribbonBottom");
 
-  // ---------- cumulative win-odds chart (hard-coded 12 Jun 2026; API feed later) ----------
-  const WINPC_SNAPSHOT = {"es":11,"fr":11,"gb-eng":10,"de":8,"nl":8,"pt":7,"br":7,"ar":6,"be":6,"hr":4,
-    "no":3,"ch":3,"tr":3,"co":2,"at":2,"uy":2,"se":1,"gb-sct":1.0,"ba":0.9,"mx":0.9,"py":0.5,
-    "ec":0.3,"ma":0.3,"cz":0.3,"sn":0.2,"eg":0.2,"ci":0.2,"dz":0.1,"kr":0.1,"ir":0.1,"jp":0.1,
-    "us":0.1,"au":0.1,"za":0,"tn":0,"ca":0,"cd":0,"cv":0,"jo":0,"iq":0,"gh":0,"uz":0,"qa":0,
-    "sa":0,"cw":0,"ht":0,"pa":0,"nz":0};
+  // ---------- cumulative win-odds chart (fallback snapshot of the official feed,
+  // refreshed by hand when badly stale — currently 12 Jul 2026, semis; zeros are
+  // real knockouts, so the snapshot render passes zeroIsOut too) ----------
+  const WINPC_SNAPSHOT = {"fr":29.6,"ar":28.03,"es":22.13,"gb-eng":20.24,"dz":0,"au":0,"at":0,"be":0,
+    "ba":0,"br":0,"ca":0,"cv":0,"co":0,"hr":0,"cw":0,"cz":0,"cd":0,"ec":0,"eg":0,"de":0,"gh":0,
+    "ht":0,"ir":0,"iq":0,"ci":0,"jp":0,"jo":0,"mx":0,"ma":0,"nl":0,"nz":0,"no":0,"pa":0,"py":0,
+    "pt":0,"qa":0,"sa":0,"gb-sct":0,"sn":0,"za":0,"kr":0,"se":0,"ch":0,"tn":0,"tr":0,"us":0,
+    "uy":0,"uz":0};
 
   const NAME2CODE = {"USA":"us","Canada":"ca","Mexico":"mx","Argentina":"ar","Brazil":"br",
     "Uruguay":"uy","Colombia":"co","Ecuador":"ec","Paraguay":"py","England":"gb-eng",
@@ -625,8 +630,9 @@
     });
   }
 
-  // `zeroIsOut`: in live feed data a 0 means the team really is eliminated, so
-  // show a plain "0%"; the pre-draw snapshot's 0 meant "rounded below 0.1%".
+  // `zeroIsOut`: when the data is (a snapshot of) the live feed, a 0 means the
+  // team really is eliminated, so show a plain "0%" rather than softening it to
+  // "<0.1%" (which only made sense pre-draw, where 0 meant "rounded down").
   function renderOddsChart(winpc, srcText, unmatched, modal, zeroIsOut){
     const peopleMap = {};
     for(const [code, ticket] of Object.entries(OWNERS)){
@@ -750,7 +756,7 @@
     }
   }
 
-  renderOddsChart(WINPC_SNAPSHOT, "Sports4cast model &middot; 12 Jun 2026 snapshot");
+  renderOddsChart(WINPC_SNAPSHOT, "Official Sports4cast &middot; 12 Jul 2026 snapshot", null, null, true);
 
   // first choice: the canonical daily Monte Carlo, committed each morning by the sim bot
   let liveOddsApplied = false;
