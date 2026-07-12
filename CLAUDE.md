@@ -18,8 +18,11 @@ Marsh** (bottom of all 48 on GD, −11) — see roadmap item 5.
     champion % of exactly 0 means the team is genuinely out, so it renders as
     "0% — knocked out" on the fun-fact card and a plain "0%" in the odds chart
     (`renderOddsChart`'s `zeroIsOut` flag; wallchart.html's team card does the
-    same via `fmtChampPct`) — only the pre-draw snapshot still softens 0 to
-    "<0.1%", where it meant "rounded down". Was the pre-draw
+    same via `fmtChampPct`). The hard-coded fallback snapshots (`WINPROB` for
+    the fun-fact card, `WINPC_SNAPSHOT` for the chart — shown only while/if
+    `data/daily-sim.json` can't load) were refreshed 12 Jul from the official
+    feed (semis: only 4 teams non-zero) and now say "0% — knocked out" too;
+    refresh them by hand from daily-sim.json if they go badly stale again. Was the pre-draw
     countdown page; being evolved into the live tournament tracker. Both the
     fixtures and results panels are scoped to the **current round** — derived from
     openfootball's per-match `round` field ("Matchday N" in the group stage,
