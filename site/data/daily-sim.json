@@ -1,9 +1,9 @@
 {
-  "generated": "2026-07-13T12:20:12.836Z",
-  "seed": 20260713,
+  "generated": "2026-07-14T11:07:38.989Z",
+  "seed": 20260714,
   "sims": 10000,
   "source": "sports4cast-live",
-  "source_updated": "2026-07-13T05:03:00.205621Z",
+  "source_updated": "2026-07-14T07:12:30.434827Z",
   "source_sims": 10000,
   "method": "Champion, runner-up & every stage are the official Sports4cast 10,000-run figures (chances.*); the predicted bracket and modal podium advance each knockout by the feed's reach-next-round probability (the per-match odds Sports4cast shows, derived from the chances exit-distribution), so the champion is the feed's predicted winner; the third-place playoff is the only match we model ourselves — a one-match Elo tie between the two semi-final losers; modal = the single most-likely playthrough, matching the wall chart's autosim",
   "team_data": {
@@ -37,9 +37,9 @@
       "r32_opp": "Cape Verde",
       "next_opp": "England",
       "chances": {
-        "win": 25.82,
-        "final": 24.99,
-        "sf": 49.19,
+        "win": 25.58,
+        "final": 26.48,
+        "sf": 47.94,
         "qf": 0,
         "r16": 0,
         "r32": 0,
@@ -323,9 +323,9 @@
       "r32_opp": "DR Congo",
       "next_opp": "Argentina",
       "chances": {
-        "win": 22.52,
-        "final": 26.67,
-        "sf": 50.81,
+        "win": 21.5,
+        "final": 26.44,
+        "sf": 52.06,
         "qf": 0,
         "r16": 0,
         "r32": 0,
@@ -343,9 +343,9 @@
       "r32_opp": "Sweden",
       "next_opp": "Spain",
       "chances": {
-        "win": 30.09,
-        "final": 26.69,
-        "sf": 43.22,
+        "win": 26.94,
+        "final": 23.59,
+        "sf": 49.47,
         "qf": 0,
         "r16": 0,
         "r32": 0,
@@ -781,9 +781,9 @@
       "r32_opp": "Austria",
       "next_opp": "France",
       "chances": {
-        "win": 21.57,
-        "final": 21.65,
-        "sf": 56.78,
+        "win": 25.98,
+        "final": 23.49,
+        "sf": 50.53,
         "qf": 0,
         "r16": 0,
         "r32": 0,
@@ -975,10 +975,10 @@
     "Curacao": 1072.1
   },
   "champion": {
-    "France": 30.09,
-    "Argentina": 25.82,
-    "England": 22.52,
-    "Spain": 21.57,
+    "France": 26.94,
+    "Spain": 25.98,
+    "Argentina": 25.58,
+    "England": 21.5,
     "Algeria": 0,
     "Australia": 0,
     "Austria": 0,
@@ -1025,10 +1025,10 @@
     "Uzbekistan": 0
   },
   "runnerUp": {
-    "France": 26.69,
-    "England": 26.67,
-    "Argentina": 24.99,
-    "Spain": 21.65,
+    "Argentina": 26.48,
+    "England": 26.44,
+    "France": 23.59,
+    "Spain": 23.49,
     "Algeria": 0,
     "Australia": 0,
     "Austria": 0,
@@ -1075,10 +1075,10 @@
     "Uzbekistan": 0
   },
   "third": {
-    "Spain": 32,
-    "France": 24.04,
-    "England": 23.02,
-    "Argentina": 20.94,
+    "Spain": 28.46,
+    "France": 27.5,
+    "England": 23.62,
+    "Argentina": 20.43,
     "Algeria": 0,
     "Australia": 0,
     "Austria": 0,
@@ -1209,11 +1209,11 @@
       "r32": 0,
       "r16": 0,
       "qf": 0,
-      "sf": 49.19,
-      "final": 24.99,
-      "win": 25.82,
-      "runnerUp": 24.99,
-      "third": 20.94
+      "sf": 47.94,
+      "final": 26.48,
+      "win": 25.58,
+      "runnerUp": 26.48,
+      "third": 20.43
     },
     "Australia": {
       "group": 0,
@@ -1374,22 +1374,22 @@
       "r32": 0,
       "r16": 0,
       "qf": 0,
-      "sf": 50.81,
-      "final": 26.67,
-      "win": 22.52,
-      "runnerUp": 26.67,
-      "third": 23.02
+      "sf": 52.06,
+      "final": 26.44,
+      "win": 21.5,
+      "runnerUp": 26.44,
+      "third": 23.62
     },
     "France": {
       "group": 0,
       "r32": 0,
       "r16": 0,
       "qf": 0,
-      "sf": 43.22,
-      "final": 26.69,
-      "win": 30.09,
-      "runnerUp": 26.69,
-      "third": 24.04
+      "sf": 49.47,
+      "final": 23.59,
+      "win": 26.94,
+      "runnerUp": 23.59,
+      "third": 27.5
     },
     "Germany": {
       "group": 0,
@@ -1638,11 +1638,11 @@
       "r32": 0,
       "r16": 0,
       "qf": 0,
-      "sf": 56.78,
-      "final": 21.65,
-      "win": 21.57,
-      "runnerUp": 21.65,
-      "third": 32
+      "sf": 50.53,
+      "final": 23.49,
+      "win": 25.98,
+      "runnerUp": 23.49,
+      "third": 28.46
     },
     "Sweden": {
       "group": 0,
@@ -1728,26 +1728,27 @@
       "Senegal": 0.0001
     },
     "r32_10": {
-      "Algeria": 0.9999,
-      "Senegal": 0.0001
+      "Algeria": 1
     },
     "r32_11": {
       "Bosnia-Herzegovina": 1
     },
     "r32_12": {
-      "Paraguay": 0.9997,
-      "Sweden": 0.0003
+      "Paraguay": 0.9999,
+      "Sweden": 0.0001
     },
     "r32_13": {
       "Senegal": 0.9998,
-      "Ecuador": 0.0002
+      "Ecuador": 0.0001,
+      "Algeria": 0.0001
     },
     "r32_14": {
-      "Sweden": 1
+      "Sweden": 0.9999,
+      "Paraguay": 0.0001
     },
     "r32_15": {
-      "Ghana": 0.9997,
-      "Senegal": 0.0003
+      "Ghana": 0.9999,
+      "Senegal": 0.0001
     },
     "r32_16": {
       "DR Congo": 1
