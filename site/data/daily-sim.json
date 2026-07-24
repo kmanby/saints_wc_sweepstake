@@ -1,9 +1,9 @@
 {
-  "generated": "2026-07-23T11:24:22.333Z",
-  "seed": 20260723,
+  "generated": "2026-07-24T11:16:57.260Z",
+  "seed": 20260724,
   "sims": 10000,
   "source": "sports4cast-live",
-  "source_updated": "2026-07-23T05:07:30.694874Z",
+  "source_updated": "2026-07-24T05:08:54.758299Z",
   "source_sims": 10000,
   "method": "Champion, runner-up & every stage are the official Sports4cast 10,000-run figures (chances.*); the predicted bracket and modal podium advance each knockout by the feed's reach-next-round probability (the per-match odds Sports4cast shows, derived from the chances exit-distribution), so the champion is the feed's predicted winner; the third-place playoff is the only match we model ourselves — a one-match Elo tie between the two semi-final losers; modal = the single most-likely playthrough, matching the wall chart's autosim",
   "team_data": {
@@ -1726,29 +1726,32 @@
     },
     "r32_10": {
       "Algeria": 0.9998,
-      "Senegal": 0.0002
+      "Ecuador": 0.0002
     },
     "r32_11": {
-      "Bosnia-Herzegovina": 1
+      "Bosnia-Herzegovina": 0.9996,
+      "Senegal": 0.0003,
+      "Ecuador": 0.0001
     },
     "r32_12": {
-      "Paraguay": 0.9999,
-      "Sweden": 0.0001
+      "Paraguay": 0.9998,
+      "Sweden": 0.0002
     },
     "r32_13": {
       "Senegal": 0.9996,
-      "Algeria": 0.0002,
-      "Ecuador": 0.0002
+      "Algeria": 0.0003,
+      "Ecuador": 0.0001
     },
     "r32_14": {
       "Sweden": 1
     },
     "r32_15": {
-      "Ghana": 0.9997,
-      "Senegal": 0.0003
+      "Ghana": 0.9998,
+      "Senegal": 0.0002
     },
     "r32_16": {
-      "DR Congo": 1
+      "DR Congo": 0.9999,
+      "Senegal": 0.0001
     }
   }
 }
