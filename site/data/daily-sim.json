@@ -1,6 +1,6 @@
 {
-  "generated": "2026-08-23T09:52:11.082Z",
-  "seed": 20260823,
+  "generated": "2026-08-24T10:10:16.275Z",
+  "seed": 20260824,
   "sims": 10000,
   "source": "sports4cast-live",
   "source_updated": "2026-08-03T05:08:37.863094Z",
@@ -1725,34 +1725,29 @@
       "Ecuador": 1
     },
     "r32_10": {
-      "Algeria": 0.9999,
-      "Ecuador": 0.0001
+      "Algeria": 1
     },
     "r32_11": {
-      "Bosnia-Herzegovina": 0.9998,
-      "Ecuador": 0.0001,
-      "Senegal": 0.0001
+      "Bosnia-Herzegovina": 0.9997,
+      "Senegal": 0.0003
     },
     "r32_12": {
-      "Paraguay": 0.9999,
-      "Sweden": 0.0001
+      "Paraguay": 1
     },
     "r32_13": {
       "Senegal": 0.9997,
-      "Ecuador": 0.0002,
-      "Algeria": 0.0001
+      "Algeria": 0.0002,
+      "Ecuador": 0.0001
     },
     "r32_14": {
-      "Sweden": 0.9999,
-      "Paraguay": 0.0001
+      "Sweden": 1
     },
     "r32_15": {
       "Ghana": 0.9999,
       "Senegal": 0.0001
     },
     "r32_16": {
-      "DR Congo": 0.9999,
-      "Senegal": 0.0001
+      "DR Congo": 1
     }
   }
 }
